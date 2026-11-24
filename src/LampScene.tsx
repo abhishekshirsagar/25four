@@ -25,6 +25,7 @@ export type LampSceneProps = {
 
 const modelHeight = 3.2
 const shadeStart = 1.55
+const printingEnd = 0.68
 const internalColumnRadius = 0.9
 const internalColumnTop = 1.9
 const normalizedModels = new WeakMap<THREE.BufferGeometry, THREE.BufferGeometry>()
@@ -33,26 +34,27 @@ const filamentProfiles = new WeakMap<THREE.BufferGeometry, Float32Array>()
 const baseColor = new THREE.Color('#02144c')
 const shadeColor = new THREE.Color('#f6f5f0')
 const warmColor = new THREE.Color('#ffbf75')
-const lampStartRotation = Math.PI * 1.25 - 0.24
+const lampStartRotation = Math.PI * 0.75 - 0.24
 const assetBase = import.meta.env.BASE_URL
 
 function assemblyMotion(progress: number, reducedMotion: boolean) {
   if (reducedMotion) return { base: 1, shade: 1 }
-  const drop = THREE.MathUtils.smootherstep(progress, 0.7, 0.9)
+  const travel = THREE.MathUtils.clamp((progress - printingEnd) / (0.9 - printingEnd), 0, 1)
+  const drop = travel * (0.4 + travel * (2.2 - 1.6 * travel))
   return { base: drop, shade: drop }
 }
 
 function formation(progress: number, reducedMotion: boolean) {
   return {
-    shade: reducedMotion ? 1 : THREE.MathUtils.smoothstep(progress, 0.18, 0.68),
+    shade: reducedMotion ? 1 : THREE.MathUtils.smoothstep(progress, 0.18, printingEnd),
     base: assemblyMotion(progress, reducedMotion).base,
   }
 }
 
 function printMotion(progress: number, reducedMotion: boolean) {
   const movement = reducedMotion ? 0 : Math.sin(THREE.MathUtils.smoothstep(progress, 0.18, 0.72) * Math.PI)
-  const printing = reducedMotion ? 1 : THREE.MathUtils.smoothstep(progress, 0.18, 0.68)
-  return { rotationY: -printing * Math.PI - assemblyMotion(progress, reducedMotion).base * Math.PI / 4, zoom: 1 + movement * 0.08 }
+  const printing = reducedMotion ? 1 : THREE.MathUtils.smoothstep(progress, 0.18, printingEnd)
+  return { rotationY: printing * Math.PI + assemblyMotion(progress, reducedMotion).base * Math.PI / 4, zoom: 1 + movement * 0.08 }
 }
 
 function shadePose(progress: number, reducedMotion: boolean, width: number) {
@@ -62,7 +64,7 @@ function shadePose(progress: number, reducedMotion: boolean, width: number) {
 }
 
 function baseHeight(progress: number, reducedMotion: boolean, width: number) {
-  const shade = shadePose(0.7, reducedMotion, width)
+  const shade = shadePose(printingEnd, reducedMotion, width)
   return (shadeStart * shade.scale + shade.offsetY) * (1 - formation(progress, reducedMotion).base)
 }
 

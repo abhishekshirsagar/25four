@@ -41,6 +41,7 @@
 - [x] Precompile shaders before scene readiness and make printing travel respond promptly without shortening the full animation.
 - [x] Reverse the lamp's 180-degree upright printing rotation, retaining the small zoom.
 - [x] Use a slower reversed 45-degree assembly turn, synchronized with shrink/drop and reversible without changing the final cable orientation.
+- [x] Start assembly immediately at shade-print completion with a modest initial velocity, removing the post-print hold.
 - [x] Trace the active layer with a model-profiled filament and finish the strand at completion.
 - [x] Keep a white filament tracing the printed shade; remove filament entirely during base assembly.
 - [x] Enlarge the shade-only pose, then start the base drop and shade shrink/lift simultaneously on one easing curve; keep the base independently floor-aligned.
