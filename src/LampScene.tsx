@@ -25,6 +25,7 @@ export type LampSceneProps = {
 
 const modelHeight = 3.2
 const shadeStart = 1.55
+const shadeRimHeight = 1.6
 const printingEnd = 0.68
 const internalColumnRadius = 0.9
 const internalColumnTop = 1.9
@@ -220,7 +221,10 @@ function graphicGeometry(svg: SVGResult, model: THREE.BufferGeometry) {
 function createGraphicMaterial(pattern: THREE.Texture) {
   return new THREE.ShaderMaterial({
     transparent: true,
-    depthWrite: false,
+    depthWrite: true,
+    polygonOffset: true,
+    polygonOffsetFactor: -1,
+    polygonOffsetUnits: -1,
     side: THREE.DoubleSide,
     uniforms: {
       graphicEntrance: { value: 0 },
@@ -263,7 +267,9 @@ function createGraphicMaterial(pattern: THREE.Texture) {
         vec3 displayInk = linearToOutputTexel(vec4(graphicInk, 1.0)).rgb;
         vec3 motifInk = mix(displayInk, vec3(1.0), motif);
         vec3 ink = sRGBTransferEOTF(vec4(motifInk, 1.0)).rgb;
-        gl_FragColor = vec4(ink, max(outline, fill) * graphicOpacity);
+        float opacity = max(outline, fill) * graphicOpacity;
+        if (opacity <= 0.001) discard;
+        gl_FragColor = vec4(ink, opacity);
         #include <colorspace_fragment>
       }`,
   })
@@ -607,7 +613,7 @@ function PrintedLamp({ progress, entrance = 1, lightOn, reducedMotion, onReady }
   const notifyReady = useEffectEvent(() => onReady?.())
   const reveal = formation(progress, reducedMotion)
   const [pose] = useState(() => ({
-    center: new THREE.Vector3(0, shadeStart, 0),
+    center: new THREE.Vector3(0, shadeRimHeight, 0),
     projected: new THREE.Vector3(),
     measure: new THREE.Vector3(),
     right: new THREE.Vector3(),
@@ -641,7 +647,7 @@ function PrintedLamp({ progress, entrance = 1, lightOn, reducedMotion, onReady }
     uniforms.baseHeight.value = baseHeight(progress, reducedMotion, state.size.width)
     uniforms.shadeScale.value = shade.scale
     uniforms.shadeOffsetY.value = shade.offsetY
-    uniforms.printHeight.value = THREE.MathUtils.lerp(shadeStart, modelHeight + 0.02, uniforms.printReveal.value)
+    uniforms.printHeight.value = THREE.MathUtils.lerp(shadeRimHeight, modelHeight + 0.02, uniforms.printReveal.value)
     uniforms.lampLight.value = Number(lightOn)
     if (group.current) {
       group.current.scale.setScalar(shade.scale)
@@ -673,12 +679,12 @@ function PrintedLamp({ progress, entrance = 1, lightOn, reducedMotion, onReady }
       outline.current.quaternion.multiply(pose.turn)
       if (!reducedMotion && progress >= 0.18) {
         const shade = shadePose(progress, false, state.size.width)
-        outline.current.position.set(0, shadeStart * shade.scale + shade.offsetY, 0)
+        outline.current.position.set(0, shadeRimHeight * shade.scale + shade.offsetY, 0)
         outline.current.scale.setScalar(shade.scale)
         outline.current.quaternion.setFromAxisAngle(pose.upright, lampStartRotation + printMotion(progress, false).rotationY + vectorTargetRotation)
       }
       const graphic = outlineMaterial.current.uniforms
-      const handoff = !shadersReady ? 0 : reducedMotion ? Number(entrance >= 1) : THREE.MathUtils.smoothstep(reveal.shade, 0.015, 0.12)
+      const handoff = !shadersReady ? 0 : reducedMotion ? Number(entrance >= 1) : THREE.MathUtils.smoothstep(reveal.shade, 0.006, 0.06)
       graphic.graphicEntrance.value = entrance
       graphic.graphicTilt.value = tilt
       graphic.graphicOpacity.value = 1 - handoff
@@ -715,7 +721,7 @@ function PrintedLamp({ progress, entrance = 1, lightOn, reducedMotion, onReady }
 
   return (
     <>
-      <group ref={outline} position={[0, shadeStart, 0]}>
+      <group ref={outline} position={[0, shadeRimHeight, 0]}>
         <mesh ref={surface} geometry={surfaceGeometry} dispose={null} renderOrder={2} />
       </group>
       <group ref={group} rotation={[0, lampStartRotation, 0]}>

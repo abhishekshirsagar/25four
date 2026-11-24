@@ -40,6 +40,7 @@
 - [x] Keep the final light checkpoint white with indigo text, retaining warm ground illumination and bloom.
 - [x] Add an accessible On/Off switch between the finished model and text; preserve automatic illumination by default and user choice while scrolling.
 - [x] Keep the guide attached to the first printed layers and fade it only once solid geometry is visible, with no empty handoff.
+- [x] Align the guide and print start to the actual shade rim, use stable visible-edge depth ordering, and shorten overlap to avoid a doubled rim.
 - [x] Remove cross-brace spans from rendered geometry and shadows without changing the base, outer shell, or source STL; retain the small attachment junctions.
 - [x] Precompile shaders before scene readiness and make printing travel respond promptly without shortening the full animation.
 - [x] Reverse the lamp's 180-degree upright printing rotation, retaining the small zoom.
