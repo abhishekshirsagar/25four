@@ -29,10 +29,11 @@
 - [x] Add eased wheel, touch, keyboard, and next-arrow scroll checkpoints, including reverse travel.
 - [x] Replace numbered chapter controls with a single 44 px down arrow that advances to Vibe, then specifications.
 - [x] Use exactly two story stops: Making at the outline and Vibe at the illuminated lamp, with no completed-shade checkpoint.
-- [x] Mirror easing curves for upward travel so reverse motion retraces the forward timing.
+- [x] Reverse the scene on upward travel with responsive initial velocity and smooth settling, avoiding the slow start of a mirrored ease-in.
 - [x] Run printing travel at half its previous speed while keeping opening and Back to top responsive.
 - [x] Tilt the flat contour into the shade's actual 3D bottom rim.
 - [x] Turn the vector another 45 degrees during the print handoff, compensate its target rim geometry, and preserve later motion and reverse alignment.
+- [x] Give the vector-to-print transform its own relaxed 1.2-second segment without slowing the rest of the print journey.
 - [x] Print the shade upward before revealing any of the blue base.
 - [x] Reveal the blue base only once the shade is complete.
 - [x] Light the finished lamp automatically at the final chapter.

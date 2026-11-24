@@ -7,6 +7,7 @@ const LampScene = lazy(() => import('./LampScene'))
 const scrollCheckpoints = [0, 0.075, 0.98]
 const finalCheckpoint = scrollCheckpoints[scrollCheckpoints.length - 1]
 const openingTransitionMs = 2400
+const vectorTransitionMs = 1200
 const detailsTransitionMs = 650
 const assetBase = import.meta.env.BASE_URL
 
@@ -16,6 +17,10 @@ function easeOpening(value: number) {
 
 function easePrinting(value: number) {
   return value * (0.8 + value * (1.4 - 1.2 * value))
+}
+
+function easeReturning(value: number) {
+  return value * (1.2 + value * (0.6 - 0.8 * value))
 }
 
 const chapters = [
@@ -112,7 +117,12 @@ function App() {
       const detailsTravel = Math.min(startProgress, targetProgress) >= finalCheckpoint - 0.001 && Math.max(startProgress, targetProgress) > 1.001
       const printingTravel = !openingTravel && targetProgress > 0.06 && Math.min(startProgress, targetProgress) < 0.84 && Math.max(startProgress, targetProgress) > 0.24 && Math.max(startProgress, targetProgress) <= 1.001
       const baseDuration = Math.max(900, Math.min(1700, Math.abs(target - start) * 0.75)) / 0.75
-      const duration = openingTravel ? openingTransitionMs : detailsTravel ? detailsTransitionMs : baseDuration * (printingTravel ? 2 : 1)
+      const regularDuration = openingTravel ? openingTransitionMs : detailsTravel ? detailsTransitionMs : baseDuration * (printingTravel ? 2 : 1)
+      const vectorTravel = printingTravel && direction > 0 && startProgress < 0.18 && targetProgress > 0.18
+      const vectorTarget = section.origin + section.span * 0.18
+      const vectorDuration = vectorTravel ? vectorTransitionMs * Math.min(1, (0.18 - startProgress) / (0.18 - scrollCheckpoints[1])) : 0
+      const remainingDuration = vectorTravel ? regularDuration * (target - vectorTarget) / (target - start) : regularDuration
+      const duration = vectorDuration + remainingDuration
       if (detailsTravel) {
         window.scrollTo({ top: target, behavior: 'smooth' })
         motionTimer = window.setTimeout(() => {
@@ -124,9 +134,15 @@ function App() {
       const easeTravel = openingTravel ? easeOpening : printingTravel ? easePrinting : (value: number) => value * value * (3 - 2 * value)
       const reverse = target < start
       const advance = (now: number) => {
-        const elapsed = Math.min(1, (now - motionStart) / duration)
-        const eased = reverse ? 1 - easeTravel(1 - elapsed) : easeTravel(elapsed)
-        window.scrollTo({ top: start + (target - start) * eased, behavior: 'instant' })
+        const elapsedTime = now - motionStart
+        const elapsed = Math.min(1, elapsedTime / duration)
+        const eased = reverse ? easeReturning(elapsed) : easeTravel(elapsed)
+        const position = vectorTravel
+          ? elapsedTime < vectorDuration
+            ? start + (vectorTarget - start) * easeOpening(elapsedTime / vectorDuration)
+            : vectorTarget + (target - vectorTarget) * easePrinting(Math.min(1, (elapsedTime - vectorDuration) / remainingDuration))
+          : start + (target - start) * eased
+        window.scrollTo({ top: position, behavior: 'instant' })
         if (elapsed < 1) motionFrame = requestAnimationFrame(advance)
         else { moving = false; finishedAt = now }
       }
