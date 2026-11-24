@@ -39,7 +39,7 @@ const assetBase = import.meta.env.BASE_URL
 function assemblyMotion(progress: number, reducedMotion: boolean) {
   if (reducedMotion) return { base: 1, shade: 1 }
   const drop = THREE.MathUtils.smootherstep(progress, 0.7, 0.78)
-  return { base: drop, shade: THREE.MathUtils.clamp((drop - 0.45) / 0.55, 0, 1) }
+  return { base: drop, shade: drop }
 }
 
 function formation(progress: number, reducedMotion: boolean) {
@@ -288,14 +288,14 @@ function createPrintMaterial() {
         float distanceFromBulb = length((vLampPosition - vec3(0.0, 2.05, 0.0)) * vec3(1.0, 0.7, 1.0));
         float transmittedLight = exp(-distanceFromBulb * 1.05);
         vec3 transmittedColor = mix(vec3(1.0, 0.43, 0.12), vec3(1.0, 0.93, 0.75), transmittedLight);
-        totalEmissiveRadiance += transmittedColor * lampLight * shadeMask * (0.16 + transmittedLight * transmittedLight * 6.0);
+        totalEmissiveRadiance += transmittedColor * lampLight * shadeMask * (0.16 + transmittedLight * transmittedLight * 6.8);
         totalEmissiveRadiance += lampWarm * printEdge * 0.12;`)
       .replace('#include <opaque_fragment>', `
         vec3 glowingSurface = outgoingLight / (vec3(1.0) + outgoingLight * 0.60);
         outgoingLight = mix(outgoingLight, glowingSurface, lampLight * shadeMask);
         #include <opaque_fragment>`)
   }
-  material.customProgramCacheKey = () => '25four-assembly-v10'
+  material.customProgramCacheKey = () => '25four-assembly-v11'
 
   const depthMaterial = new THREE.MeshDepthMaterial({
     depthPacking: THREE.RGBADepthPacking,
@@ -458,10 +458,12 @@ function StudioCamera({ progress, reducedMotion }: Pick<LampSceneProps, 'progres
   useFrame((state) => {
     const activeCamera = state.camera
     if (!(activeCamera instanceof THREE.PerspectiveCamera)) return
-    const zoom = printMotion(progress, reducedMotion).zoom * 1.28
+    const mobile = state.size.width <= 650
+    const compact = mobile && state.size.height <= 700
+    const zoom = printMotion(progress, reducedMotion).zoom * (compact ? 1.05 : mobile ? 1.15 : 1.28)
     activeCamera.zoom = zoom
     activeCamera.setViewOffset(state.size.width, state.size.height,
-      0, state.size.height * 0.10,
+      0, state.size.height * (compact ? 0.15 : 0.10),
       state.size.width, state.size.height)
   })
   return null
@@ -611,7 +613,7 @@ function PrintedLamp({ progress, entrance = 1, lightOn, reducedMotion, onReady }
       const pixelsPerUnit = Math.abs(pose.measure.x - pose.projected.x) * state.size.width / 2
       const startWidth = Math.max(window.innerWidth * 1.05, state.size.height * 1.10)
       const startHorizontal = 0.5
-      const startVertical = 0.18 + startWidth / state.size.height / 2
+      const startVertical = state.size.width <= 650 ? 1 : 0.18 + startWidth / state.size.height / 2
       const startScale = startWidth / (4 * pixelsPerUnit)
       pose.offset.set(startHorizontal * 2 - 1, 1 - startVertical * 2, pose.projected.z).unproject(state.camera).sub(pose.center)
       outline.current.position.copy(pose.center).addScaledVector(pose.offset, 1 - entrance)
@@ -637,7 +639,7 @@ function PrintedLamp({ progress, entrance = 1, lightOn, reducedMotion, onReady }
       graphic.graphicInk.value.copy(baseColor).lerp(shadeColor, handoff)
       outline.current.visible = graphic.graphicOpacity.value > 0.001 && !(reducedMotion && entrance >= 1)
     }
-    if (pointLight.current) pointLight.current.intensity = uniforms.lampLight.value * 6
+    if (pointLight.current) pointLight.current.intensity = uniforms.lampLight.value * 7
     if (spillLight.current) spillLight.current.intensity = uniforms.lampLight.value * 9
   })
 

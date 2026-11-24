@@ -91,6 +91,7 @@ function App() {
   useEffect(() => {
     let frame = 0
     let motionFrame = 0
+    let motionTimer = 0
     let settleTimer = 0
     let moving = false
     let direction = 0
@@ -124,6 +125,7 @@ function App() {
     const animateTo = (destination: number) => {
       claim()
       cancelAnimationFrame(motionFrame)
+      clearTimeout(motionTimer)
       clearTimeout(settleTimer)
       const start = scrollY
       const target = Math.max(0, Math.min(destination, document.documentElement.scrollHeight - innerHeight))
@@ -144,6 +146,14 @@ function App() {
       const printingTravel = !openingTravel && targetProgress > 0.06 && Math.min(startProgress, targetProgress) < 0.84 && Math.max(startProgress, targetProgress) > 0.24 && Math.max(startProgress, targetProgress) <= 1.001
       const baseDuration = Math.max(900, Math.min(1700, Math.abs(target - start) * 0.75)) / 0.75
       const duration = openingTravel ? openingTransitionMs : detailsTravel ? detailsTransitionMs : baseDuration * (printingTravel ? 2 : 1)
+      if (detailsTravel) {
+        window.scrollTo({ top: target, behavior: 'smooth' })
+        motionTimer = window.setTimeout(() => {
+          moving = false
+          finishedAt = performance.now()
+        }, detailsTransitionMs)
+        return
+      }
       const advance = (now: number) => {
         const elapsed = Math.min(1, (now - motionStart) / duration)
         const eased = openingTravel ? easeOpening(elapsed) : printingTravel ? easePrinting(elapsed) : elapsed * elapsed * (3 - 2 * elapsed)
@@ -167,7 +177,7 @@ function App() {
       const next = Math.max(0, Math.min(1, (scrollY - section.origin) / section.span))
       if (next < previousProgress.current - 0.00001) { claimed = true; entranceFrame.current = 0; setScrollDriven(true) }
       previousProgress.current = next
-      setProgress(next)
+      setProgress(Math.min(next, scrollCheckpoints[3]))
     }
     const schedule = () => {
       if (!frame) frame = requestAnimationFrame(measure)
@@ -227,6 +237,7 @@ function App() {
       removeEventListener('keydown', keyboard)
       cancelAnimationFrame(frame)
       cancelAnimationFrame(motionFrame)
+      clearTimeout(motionTimer)
       clearTimeout(settleTimer)
     }
   }, [modelReady, reducedMotion])

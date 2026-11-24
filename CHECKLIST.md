@@ -40,14 +40,15 @@
 - [x] Rotate the lamp 180 degrees around its upright axis during printing, with a small zoom.
 - [x] Trace the active layer with a model-profiled filament and finish the strand at completion.
 - [x] Keep a white filament looping around the shade's top at the second stop; remove filament entirely during base assembly.
-- [x] Enlarge the shade-only pose, then start the blue base's drop slightly before the overlapping shade shrink/lift; keep the base independently floor-aligned.
+- [x] Enlarge the shade-only pose, then start the base drop and shade shrink/lift simultaneously on one easing curve; keep the base independently floor-aligned.
 - [x] Trigger brighter illumination only when the base reaches the floor.
 - [x] Spawn the blue base inside the shade, conceal its hidden portion, and accelerate it straight down without fading in; light the lamp and floor immediately at contact.
 - [x] Introduce a broad faint shadow ahead of assembly, then tighten it gradually with same-frame shadow updates.
 - [x] Center all three story stages, with the graphic or lamp above the text.
 - [x] Finish the half-turn with the cable notch facing the rear.
 - [x] Preserve the full-width first screen and 960 px post-opening maximum.
-- [x] Use a 650 ms final-story exit without redrawing the settled lamp or mixing native and guided scrolling; preserve touch, return navigation, and viewport resizing.
+- [x] Use a native smooth final-story exit with a 650 ms input guard, without per-frame scroll writes, style updates, or lamp redraws; preserve touch and return navigation.
+- [x] Reduce mobile model scale, keep model-to-text clearance, and align both opening surfaces with half the arch below the viewport; fit compact phones.
 - [x] Fade the cast shadow before canvas edges rather than clipping it.
 - [x] Restore the opening on reverse scrolling and provide a header Back to top control.
 - [x] Add studio key, fill, rim lighting, and grounded contact shadows.
