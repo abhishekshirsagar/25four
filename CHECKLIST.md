@@ -27,6 +27,7 @@
 ## Scroll And Light
 - [x] Use the selected Making and Vibe copy in two centered story chapters with the model above the text.
 - [x] Add eased wheel, touch, keyboard, and next-arrow scroll checkpoints, including reverse travel.
+- [x] Keep each touch gesture to one story stop, block transition reentry, capture through release, and preserve readable specification scrolling and pinch zoom.
 - [x] Replace numbered chapter controls with a single 44 px down arrow that advances to Vibe, then specifications.
 - [x] Use exactly two story stops: Making at the outline and Vibe at the illuminated lamp, with no completed-shade checkpoint.
 - [x] Reverse the scene on upward travel with responsive initial velocity and smooth settling, avoiding the slow start of a mirrored ease-in.

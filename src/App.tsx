@@ -89,6 +89,9 @@ function App() {
     let touchStart = 0
     let touchHorizontal = 0
     let touchHandled = false
+    let touchEligible = false
+    let touchCaptured = false
+    let touchAtDetails = false
     const bounds = () => {
       const section = story.current!
       const origin = section.getBoundingClientRect().top + scrollY
@@ -187,14 +190,28 @@ function App() {
       wheelDistance = gap > 180 ? event.deltaY : wheelDistance + event.deltaY
       if (Math.abs(wheelDistance) >= 12) { step(Math.sign(wheelDistance)); wheelDistance = 0 }
     }
-    const startTouch = (event: TouchEvent) => { touchStart = event.touches[0]?.clientY ?? 0; touchHorizontal = event.touches[0]?.clientX ?? 0; touchHandled = false }
+    const startTouch = (event: TouchEvent) => {
+      touchStart = event.touches[0]?.clientY ?? 0
+      touchHorizontal = event.touches[0]?.clientX ?? 0
+      const section = bounds()
+      touchAtDetails = Math.abs(scrollY - section.positions[section.positions.length - 1]) <= 2
+      touchEligible = modelReady && event.touches.length === 1 && (inside() || moving || touchAtDetails)
+      touchCaptured = false
+      touchHandled = moving || performance.now() - finishedAt < 220
+    }
     const moveTouch = (event: TouchEvent) => {
-      if (!modelReady || (!inside() && !moving) || !event.touches[0]) return
+      if (!touchEligible || event.touches.length !== 1) return
       const vertical = touchStart - event.touches[0].clientY
-      if (Math.abs(event.touches[0].clientX - touchHorizontal) > Math.abs(vertical)) return
+      if (!touchCaptured) {
+        if (Math.abs(event.touches[0].clientX - touchHorizontal) > Math.abs(vertical)) return
+        if (touchAtDetails && !moving && vertical > 0) return
+        if (Math.abs(vertical) <= 24) return
+        touchCaptured = true
+      }
       event.preventDefault()
       if (!touchHandled && Math.abs(vertical) > 24) { touchHandled = true; step(Math.sign(vertical)) }
     }
+    const endTouch = () => { touchEligible = false; touchCaptured = false; touchHandled = false }
     const keyboard = (event: KeyboardEvent) => {
       if (!modelReady || (!inside() && !moving) || event.ctrlKey || event.metaKey || event.altKey) return
       if (event.target instanceof HTMLElement && event.target.closest('button,a,input,textarea,select,[contenteditable="true"]')) return
@@ -209,6 +226,8 @@ function App() {
     addEventListener('wheel', wheel, { passive: false })
     addEventListener('touchstart', startTouch, { passive: true })
     addEventListener('touchmove', moveTouch, { passive: false })
+    addEventListener('touchend', endTouch, { passive: true })
+    addEventListener('touchcancel', endTouch, { passive: true })
     addEventListener('keydown', keyboard)
     measure()
     return () => {
@@ -217,6 +236,8 @@ function App() {
       removeEventListener('wheel', wheel)
       removeEventListener('touchstart', startTouch)
       removeEventListener('touchmove', moveTouch)
+      removeEventListener('touchend', endTouch)
+      removeEventListener('touchcancel', endTouch)
       removeEventListener('keydown', keyboard)
       cancelAnimationFrame(frame)
       cancelAnimationFrame(motionFrame)
@@ -245,7 +266,7 @@ function App() {
     <>
       <a className="skip-link" href="#details">Skip to specifications</a>
       <main>
-        <section className="experience" id="home" ref={story} aria-label="Kaman, the Bagru edition">
+        <section className="experience" id="home" ref={story} data-guided={modelReady} aria-label="Kaman, the Bagru edition">
           <div className="experience-sticky" data-chapter={activeChapter + 1} data-presentation={entrance.toFixed(4)} data-view={entrance >= 0.99 ? 'story' : 'opening'} data-complete={complete} data-centered={centered} data-lit={lightOn} style={{ '--entrance': entrance } as CSSProperties}>
             <header className="site-header"><Wordmark onHome={restartPresentation} /><a className="header-link" href="#details">Shop now <ArrowUpRight size={15} /></a></header>
             <section className="landing" aria-labelledby="product-title" inert={entrance > 0.6} style={{ visibility: entrance < 1 ? 'visible' : 'hidden' }}>

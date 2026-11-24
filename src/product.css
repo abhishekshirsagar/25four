@@ -1,4 +1,5 @@
 .experience { position: relative; height: 430svh; }
+.experience[data-guided='true'] { touch-action: pan-x pinch-zoom; }
 .experience-sticky { position: sticky; top: 0; height: 100svh; min-height: 620px; overflow: hidden; isolation: isolate; background: #fff; will-change: transform; }
 .landing { position: absolute; inset: 0; overflow: hidden; z-index: 2; pointer-events: none; }
 .landing a { pointer-events: auto; }
@@ -70,6 +71,7 @@
   .details-inner { padding-inline: 7.5%; gap: 7%; }
 }
 @media (max-width: 650px) {
+  .details-section { min-height: 100svh; }
   .experience-sticky { min-height: 0; }
   .hero-graphic { top: 18%; width: max(240vw, 110svh); transform: translateX(-50%); }
   .site-header { top: 35px; }
