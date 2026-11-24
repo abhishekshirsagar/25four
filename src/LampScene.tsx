@@ -33,7 +33,7 @@ const filamentProfiles = new WeakMap<THREE.BufferGeometry, Float32Array>()
 const baseColor = new THREE.Color('#02144c')
 const shadeColor = new THREE.Color('#f6f5f0')
 const warmColor = new THREE.Color('#ffbf75')
-const lampStartRotation = Math.PI - 0.24
+const lampStartRotation = -0.24
 const assetBase = import.meta.env.BASE_URL
 
 function assemblyMotion(progress: number, reducedMotion: boolean) {
@@ -51,7 +51,8 @@ function formation(progress: number, reducedMotion: boolean) {
 
 function printMotion(progress: number, reducedMotion: boolean) {
   const movement = reducedMotion ? 0 : Math.sin(THREE.MathUtils.smoothstep(progress, 0.18, 0.72) * Math.PI)
-  return { rotationY: (reducedMotion ? 1 : THREE.MathUtils.smoothstep(progress, 0.18, 0.68)) * Math.PI, zoom: 1 + movement * 0.08 }
+  const printing = reducedMotion ? 1 : THREE.MathUtils.smoothstep(progress, 0.18, 0.68)
+  return { rotationY: (printing + assemblyMotion(progress, reducedMotion).base) * Math.PI, zoom: 1 + movement * 0.08 }
 }
 
 function shadePose(progress: number, reducedMotion: boolean, width: number) {

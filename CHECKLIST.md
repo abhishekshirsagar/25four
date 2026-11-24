@@ -38,6 +38,7 @@
 - [x] Keep the guide attached to the first printed layers and fade it only once solid geometry is visible, with no empty handoff.
 - [x] Precompile shaders before scene readiness and make printing travel respond promptly without shortening the full animation.
 - [x] Rotate the lamp 180 degrees around its upright axis during printing, with a small zoom.
+- [x] Add another 180-degree upright rotation during assembly, synchronized with shrink/drop and reversible without changing the final cable orientation.
 - [x] Trace the active layer with a model-profiled filament and finish the strand at completion.
 - [x] Keep a white filament looping around the shade's top at the second stop; remove filament entirely during base assembly.
 - [x] Enlarge the shade-only pose, then start the base drop and shade shrink/lift simultaneously on one easing curve; keep the base independently floor-aligned.

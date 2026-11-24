@@ -35,6 +35,10 @@ After the opening, scrolling has three story stops: the outline, the fully print
 
 The flat outline rests at 45 degrees, then follows a controlled hinge into the shade's bottom rim. Its target vertices compensate for the flat turn so the final rim remains aligned with the actual lamp. Printing starts while the guide is still visible; the guide follows the same scale, position, and rotation as the first layers and fades only after solid geometry is present. This avoids an empty handoff or a detached lower rim. While printing, the lamp turns 180 degrees around its upright axis. At the second stop, the shade is enlarged and lowered into the available space, with a white filament looping around its top edge. The internal support column and its shadow are excluded during printing. On the next scroll, the base drops and the shade shrinks and lifts simultaneously, sharing one continuous easing value with no intermediate pause. The base starts inside the shade, concealed above its lower edge, and remains at its final size and floor-relative position independently of the shade's scale. It emerges at full color without fading in or intersecting through the shade's sides; the shadow shader uses the same concealment. A faint, broad ground shadow is already present beneath the shade; it tightens and strengthens as the base approaches the floor, avoiding a sudden shadow pop. The filament stops as the base emerges. Floor contact switches on the lamp and ground illumination in the same frame and triggers the final copy, with no delayed light ramp. The same sequence reverses when scrolling upward.
 
+Printing and final assembly each include a 180-degree upright rotation. The
+assembly turn shares the same easing as the shade shrink and base drop, reverses
+with scrolling, and retains the finished rear-facing cable notch.
+
 Printing travel responds with a small initial velocity rather than a long
 stationary ease-in, while retaining the existing overall duration. Small scroll
 gestures are accepted sooner, with a shorter trackpad-tail guard. The separate
