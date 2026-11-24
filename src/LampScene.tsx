@@ -35,6 +35,9 @@ const baseColor = new THREE.Color('#02144c')
 const shadeColor = new THREE.Color('#f6f5f0')
 const warmColor = new THREE.Color('#ffbf75')
 const lampStartRotation = Math.PI * 0.75 - 0.24
+const vectorRestRotation = Math.PI / 4
+const vectorPrintRotation = Math.PI / 4
+const vectorTargetRotation = vectorRestRotation + vectorPrintRotation
 const assetBase = import.meta.env.BASE_URL
 
 function assemblyMotion(progress: number, reducedMotion: boolean) {
@@ -72,7 +75,7 @@ function graphicRotation(camera: THREE.Quaternion, tilt: number, rotation: THREE
   rotation.setFromQuaternion(camera, 'YXZ')
   return rotation.set(
     THREE.MathUtils.lerp(rotation.x + Math.PI / 2, 0, tilt),
-    THREE.MathUtils.lerp(rotation.y, lampStartRotation - Math.PI, tilt),
+    THREE.MathUtils.lerp(rotation.y, lampStartRotation, tilt),
     0, 'YXZ')
 }
 
@@ -93,6 +96,43 @@ function normalizedGeometry(source: THREE.BufferGeometry) {
   geometry.computeBoundingSphere()
   geometry.userData.kamanNormalized = true
   normalizedModels.set(source, geometry)
+  return geometry
+}
+
+function removeInternalSupports(geometry: THREE.BufferGeometry) {
+  if (geometry.userData.kamanSupportFilterVersion === 1) return geometry
+  const positions = geometry.getAttribute('position')
+  const indices = new Uint32Array(positions.count)
+  let retained = 0
+  let removed = 0
+  for (let vertex = 0; vertex < positions.count; vertex += 3) {
+    let inBand = true
+    let narrowX = true
+    let narrowZ = true
+    let centerX = 0
+    let centerZ = 0
+    for (let corner = 0; corner < 3; corner++) {
+      const index = vertex + corner
+      const horizontal = positions.getX(index)
+      const height = positions.getY(index)
+      const depth = positions.getZ(index)
+      centerX += horizontal
+      centerZ += depth
+      inBand &&= height >= 1.5999 && height <= 1.665
+      narrowX &&= Math.abs(horizontal) <= 0.084
+      narrowZ &&= Math.abs(depth) <= 0.084
+    }
+    const radius = Math.hypot(centerX / 3, centerZ / 3)
+    if (inBand && (narrowX || narrowZ) && radius > internalColumnRadius && radius < 1.88) removed++
+    else {
+      indices[retained++] = vertex
+      indices[retained++] = vertex + 1
+      indices[retained++] = vertex + 2
+    }
+  }
+  geometry.setIndex(new THREE.BufferAttribute(indices.subarray(0, retained), 1))
+  geometry.userData.kamanSupportTrianglesRemoved = removed
+  geometry.userData.kamanSupportFilterVersion = 1
   return geometry
 }
 
@@ -160,7 +200,7 @@ function graphicGeometry(svg: SVGResult, model: THREE.BufferGeometry) {
     const after = rim[(Math.floor(segment) + 1) % rim.length]
     const radius = THREE.MathUtils.lerp(Math.hypot(before.x, before.z), Math.hypot(after.x, after.z), segment % 1)
     positions.push(horizontal, 0, depth)
-    targetPositions.push(Math.cos(angle - Math.PI / 4) * radius, 0, Math.sin(angle - Math.PI / 4) * radius)
+    targetPositions.push(Math.cos(angle + vectorTargetRotation) * radius, 0, Math.sin(angle + vectorTargetRotation) * radius)
     radii.push(1)
     coordinates.push(point.x / 1924, point.y / 1924)
     indices.push(0, index + 1, (index + 1) % perimeter.length + 1)
@@ -548,7 +588,7 @@ function PrintedLamp({ progress, entrance = 1, lightOn, reducedMotion, onReady }
   const source = useLoader(STLLoader, lampUrl)
   const svg = useLoader(SVGLoader, `${assetBase}kaman-hero-solid.svg`)
   const motif = useLoader(THREE.TextureLoader, `${assetBase}kaman-motif-white.svg`)
-  const geometry = normalizedGeometry(source)
+  const geometry = removeInternalSupports(normalizedGeometry(source))
   const [surfaceGeometry] = useState(() => graphicGeometry(svg, geometry))
   const group = useRef<THREE.Group>(null)
   const mesh = useRef<THREE.Mesh>(null)
@@ -609,7 +649,7 @@ function PrintedLamp({ progress, entrance = 1, lightOn, reducedMotion, onReady }
     }
     if (mesh.current) mesh.current.visible = shadersReady && entrance >= 0.999 && (reducedMotion || progress > 0.18)
     if (outline.current && outlineMaterial.current) {
-      const tilt = reducedMotion ? Number(entrance >= 1) : THREE.MathUtils.smootherstep(progress, 0.06, 0.18)
+      const tilt = reducedMotion ? Number(entrance >= 1) : THREE.MathUtils.smootherstep(progress, 0.075, 0.18)
       pose.projected.copy(pose.center).project(state.camera)
       pose.right.setFromMatrixColumn(state.camera.matrixWorld, 0)
       pose.measure.copy(pose.center).add(pose.right).project(state.camera)
@@ -626,13 +666,13 @@ function PrintedLamp({ progress, entrance = 1, lightOn, reducedMotion, onReady }
       const scale = THREE.MathUtils.lerp(startScale, THREE.MathUtils.lerp(flatScale, 1, tilt), entrance)
       outline.current.scale.setScalar(scale)
       outline.current.quaternion.setFromEuler(graphicRotation(state.camera.quaternion, tilt, pose.orientation))
-      pose.turn.setFromAxisAngle(pose.upright, Math.PI / 4 * THREE.MathUtils.smootherstep(entrance, 0.08, 0.9))
+      pose.turn.setFromAxisAngle(pose.upright, vectorRestRotation * THREE.MathUtils.smootherstep(entrance, 0.08, 0.9) + vectorPrintRotation * tilt)
       outline.current.quaternion.multiply(pose.turn)
       if (!reducedMotion && progress >= 0.18) {
         const shade = shadePose(progress, false, state.size.width)
         outline.current.position.set(0, shadeStart * shade.scale + shade.offsetY, 0)
         outline.current.scale.setScalar(shade.scale)
-        outline.current.quaternion.setFromAxisAngle(pose.upright, lampStartRotation + printMotion(progress, false).rotationY + Math.PI / 4)
+        outline.current.quaternion.setFromAxisAngle(pose.upright, lampStartRotation + printMotion(progress, false).rotationY + vectorTargetRotation)
       }
       const graphic = outlineMaterial.current.uniforms
       const handoff = !shadersReady ? 0 : reducedMotion ? Number(entrance >= 1) : THREE.MathUtils.smoothstep(reveal.shade, 0.015, 0.12)

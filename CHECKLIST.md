@@ -32,12 +32,14 @@
 - [x] Mirror easing curves for upward travel so reverse motion retraces the forward timing.
 - [x] Run printing travel at half its previous speed while keeping opening and Back to top responsive.
 - [x] Tilt the flat contour into the shade's actual 3D bottom rim.
+- [x] Turn the vector another 45 degrees during the print handoff, compensate its target rim geometry, and preserve later motion and reverse alignment.
 - [x] Print the shade upward before revealing any of the blue base.
 - [x] Reveal the blue base only once the shade is complete.
 - [x] Light the finished lamp automatically at the final chapter.
 - [x] Keep the final light checkpoint white with indigo text, retaining warm ground illumination and bloom.
 - [x] Remove the light switch; retain automatic illumination and chapter navigation.
 - [x] Keep the guide attached to the first printed layers and fade it only once solid geometry is visible, with no empty handoff.
+- [x] Remove cross-brace spans from rendered geometry and shadows without changing the base, outer shell, or source STL; retain the small attachment junctions.
 - [x] Precompile shaders before scene readiness and make printing travel respond promptly without shortening the full animation.
 - [x] Reverse the lamp's 180-degree upright printing rotation, retaining the small zoom.
 - [x] Use a slower reversed 45-degree assembly turn, synchronized with shrink/drop and reversible without changing the final cable orientation.

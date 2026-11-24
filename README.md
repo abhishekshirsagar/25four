@@ -33,7 +33,7 @@ The first screen follows Figma frame 8:1956: a solid indigo arch, a subtle field
 
 After the opening, scrolling has two story stops: Making at the outline and Vibe at the complete illuminated lamp. Printing, the enlarged shade pose, and assembly run as one continuous journey without a completed-shade checkpoint. The Making copy remains until the lamp lights, then switches to Vibe. A single down arrow replaces numbered chapter controls: it advances from Making to Vibe, then to specifications. Wheel, touch, Page Up/Down, and arrows use the same destinations. Printing travel keeps its eased duration of approximately 2.4-4.53 seconds; the opening handoff uses its own gentle 2.4-second curve and Back to top is not slowed. Upward travel mirrors the easing curve so it retraces the forward motion in time. Tiny trackpad reversals are ignored; deliberate reverse gestures remain available. Native scrolling resumes below the product experience. Reduced motion uses immediate checkpoint changes.
 
-The flat outline rests at 45 degrees, then follows a controlled hinge into the shade's bottom rim. Its target vertices compensate for the flat turn so the final rim remains aligned with the actual lamp. Printing starts while the guide is still visible; the guide follows the same scale, position, and rotation as the first layers and fades only after solid geometry is present. This avoids an empty handoff or a detached lower rim. While printing, the lamp turns 180 degrees around its upright axis. The shade enlarges during printing, with a white filament tracing its top edge. The internal support column and its shadow are excluded during printing. Without stopping, the base drops and the shade shrinks and lifts simultaneously, sharing one continuous easing value. The base starts inside the shade, concealed above its lower edge, and remains at its final size and floor-relative position independently of the shade's scale. It emerges at full color without fading in or intersecting through the shade's sides; the shadow shader uses the same concealment. A faint, broad ground shadow is already present beneath the shade; it tightens and strengthens as the base approaches the floor, avoiding a sudden shadow pop. The filament stops as the base emerges. Floor contact switches on the lamp and ground illumination in the same frame and triggers the Vibe copy, with no delayed light ramp. The same sequence reverses when scrolling upward.
+The flat outline rests at 45 degrees, then turns an additional 45 degrees during the controlled hinge into the shade's bottom rim. Its target vertices compensate for the combined turn so the final rim aligns point-for-point with the actual lamp. Printing starts while the guide is still visible; the guide follows the same scale, position, and rotation as the first layers and fades only after solid geometry is present. This avoids an empty handoff or a detached lower rim. While printing, the lamp turns 180 degrees around its upright axis. The shade enlarges during printing, with a white filament tracing its top edge. The internal support column and its shadow are excluded during printing; the cross-brace spans are filtered from the rendered geometry in every stage, retaining mount and shell junctions. Without stopping, the base drops and the shade shrinks and lifts simultaneously, sharing one continuous easing value. The base starts inside the shade, concealed above its lower edge, and remains at its final size and floor-relative position independently of the shade's scale. It emerges at full color without fading in or intersecting through the shade's sides; the shadow shader uses the same concealment. A faint, broad ground shadow is already present beneath the shade; it tightens and strengthens as the base approaches the floor, avoiding a sudden shadow pop. The filament stops as the base emerges. Floor contact switches on the lamp and ground illumination in the same frame and triggers the Vibe copy, with no delayed light ramp. The same sequence reverses when scrolling upward.
 
 Printing includes a 180-degree upright rotation, followed by a slower 45-degree
 assembly turn in the same selected direction. Assembly begins at shade-print
@@ -69,6 +69,15 @@ The repository and preview are public. Pushes to `main` build and deploy through
 [GitHub Actions](.github/workflows/pages.yml). The workflow sets
 `VITE_BASE_PATH=/25four/`; local development keeps the default `/` base path.
 
+## Light Sources
+
+Coordinates are local to the normalized lamp, with its floor at `y=0` and total
+height `3.2`. The bulb mesh and main point light are centered at `[0, 2.05, 0]`,
+inside the shade above the base. A secondary spill light is lower, at
+`[0, 1.35, 0.2]`. The shade's material adds simulated transmission around the
+bulb, and the floor pool is a separate shader. These activate at floor contact;
+the lighting is a visualization rather than a physical simulation.
+
 ## Runtime Performance
 
 - The canvas renders on demand rather than continuously. After lighting settles, the completed lamp stops requesting frames.
@@ -80,6 +89,7 @@ The repository and preview are public. Pushes to `main` build and deploy through
 - Pixel ratio is capped at 1.25, and the renderer no longer forces a high-performance GPU preference.
 - Standard material shading avoids unnecessary clearcoat and sheen calculations. Internal glow and bloom remain.
 - The parsed STL is normalized once in place, avoiding a duplicate copy of its vertex buffers. The original source file on disk is unchanged.
+- The rendered index excludes 8,877 cross-brace triangles, while preserving the base and outer shell. The original STL still contains its full 399,942 triangles.
 
 A local render-counter check recorded zero new frames over 1.1 seconds for the
 settled final lamp and for a hidden tab after its in-flight frame completed.
