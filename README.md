@@ -96,23 +96,6 @@ The repository and preview are public. Pushes to `main` build and deploy through
 [GitHub Actions](.github/workflows/pages.yml). The workflow sets
 `VITE_BASE_PATH=/25four/`; local development keeps the default `/` base path.
 
-## Idle Motion
-
-At the resting vector stop, the original contour turns steadily through 90 degrees
-every six seconds with a 2% scale pulse. A fixed maximum envelope keeps it inside
-the header-to-copy band without angle-dependent resizing. A crisp 28px light line
-stays at the top while the vector moves through it; there is no travelling blurred
-tracer. The idle offsets and light fade into the aligned print handoff.
-
-At the finished-lamp stop, only the shade rotates slowly, nominally once every
-45 seconds. Vertex normals and depth geometry share the rotation; the base, bulb,
-and cable orientation stay fixed. The light switch is independent of rotation.
-Connected STL parts define the shade and complete base, including its upper stem.
-That triangle-consistent classification is shared by movement, normals, colour,
-and shadows; a vertex-height threshold cannot split or stretch the blue base.
-Both loops pause on navigation input, hidden pages, and off-screen positions, and
-remain disabled with reduced motion. Non-navigating touches allow the loop to resume.
-
 ## Light Sources
 
 Coordinates are local to the normalized lamp, with its floor at `y=0` and total
@@ -126,20 +109,20 @@ the top opening. Bulb intensity and the floor-pool settings remain unchanged.
 
 ## Runtime Performance
 
-- The canvas renders on demand, with capped 24 fps requests for the visible vector and shade idle loops. Outside those stops, it settles and stops requesting frames.
+- The canvas renders on demand rather than continuously. After lighting settles, the completed lamp stops requesting frames.
 - The lit-lamp-to-details handoff uses browser-native smooth scrolling with a 650 ms guided-input guard. The completed presentation and memoized scene stay fixed while leaving the story, with no per-frame scroll writes or style updates. The sticky presentation uses a compositor layer; canvas scroll-position measurements are disabled, but element-size observation remains enabled.
 - Guided transitions retain wheel, touch, and keyboard ownership until completion, preventing native scrolling from fighting the final exit. Native scrolling resumes afterward.
 - Lamp shaders are precompiled once before scene readiness, keeping cold shader setup out of the first printing interaction. The opening poster remains available while that completes.
-- Hidden tabs, off-screen scenes, and navigation intent pause the idle loops; there is no filament-specific loop.
-- Shadow maps update with model changes and shade idle rotation; they remain cached during the vector-only loop.
+- Hidden tabs and off-screen scenes pause rendering; there is no filament-specific continuous loop.
+- Shadow maps update in the same render frame as model changes, then stay cached while idle.
 - Pixel ratio is capped at 1.25, and the renderer no longer forces a high-performance GPU preference.
 - Standard material shading avoids unnecessary clearcoat and sheen calculations. Internal glow and bloom remain.
 - The parsed STL is normalized once in place, avoiding a duplicate copy of its vertex buffers. The original source file on disk is unchanged.
 - The rendered index excludes 8,877 cross-brace triangles, while preserving the base and outer shell. The original STL still contains its full 399,942 triangles.
 
-The former zero-idle-frame measurements predate the requested continuous loops.
-Current checks confirm idle motion, reduced-motion stillness, hidden-page pausing,
-and bounded render work during the final exit. These are rendering checks, not a
+A local render-counter check recorded zero new frames over 1.1 seconds for the
+settled final lamp and for a hidden tab after its in-flight frame completed.
+These are rendering checks, not a
 cross-device CPU/battery benchmark. The original approximately 20 MB STL and its
 399,942 triangles remain the main first-load/active-draw cost; offline geometry
 decimation or compression is still a possible follow-up.
