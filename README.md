@@ -41,12 +41,23 @@ completion with a modest initial velocity, avoiding a hold between the phases.
 It shares its easing with the shade shrink and base drop, reverses with scrolling,
 lights at floor contact, and retains the finished rear-facing cable notch.
 
+The base's starting height accounts for the shade's projected occlusion, so its
+first descent is visible instead of being hidden inside the enlarged shade.
+The resting outline is sized from 78vw, capped at 610px and 74% of the scene
+height, with additional framing for short desktop viewports.
+
+The finished lamp has an On/Off switch between the model and its copy. It defaults
+to On, retains the user's choice while scrolling, and controls material glow,
+point lights, the bulb, bloom, and the floor pool together. It is hidden during
+Making. "See Kaman lit" explicitly restores On. The switch supports keyboard
+activation and uses a 56 x 44px touch target; compact layouts preserve clearance.
+
 The vector's tilt and 45-degree turn use their own relaxed 1.2-second segment;
 the following print journey retains its established easing and proportional pace.
 Small scroll gestures are accepted promptly, with a short trackpad-tail guard.
 Returning upward begins moving immediately and slows smoothly at its destination.
 
-Both story sections use a centered graphic or lamp above centered text. Its starting orientation is offset so the printing and assembly rotations finish with the cable notch at the rear. At the final light checkpoint, the background stays white with the original indigo text and navigation, while the lamp illuminates with internal light falloff, bloom, and a restrained, softly warm pool of light on the ground. The shade retains its detail, and the floor pool has reduced yellow saturation and intensity. The pool fades before its plane edges. There is no light switch.
+Both story sections use a centered graphic or lamp above centered text. Its starting orientation is offset so the printing and assembly rotations finish with the cable notch at the rear. At the final light checkpoint, the background stays white with the original indigo text and navigation, while the lamp illuminates with internal light falloff, bloom, and a restrained, softly warm pool of light on the ground. The shade retains its detail, and the floor pool has reduced yellow saturation and intensity. The pool fades before its plane edges. The finished-lamp switch lets the user inspect both illuminated and unlit states without changing the assembly pose.
 
 The opening artwork remains full-width. Navigation uses the same fixed 960 px maximum container from the opening onward, with Shop now aligned to its right edge. The separate header up-arrow is removed; the studio mark and footer arrow still return to the top. Shop now currently opens the local product specifications, not a checkout. The model composition, story, specifications, and footer also have a 960 px maximum width. The specifications form a full-width indigo band with white text, soft blue labels, and white line artwork. The canvas remains viewport-wide throughout, avoiding resize-induced camera jumps and leaving room for bloom. Scrolling upward reverses the story and restores the stationary opening.
 

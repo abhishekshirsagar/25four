@@ -38,13 +38,15 @@
 - [x] Reveal the blue base only once the shade is complete.
 - [x] Light the finished lamp automatically at the final chapter.
 - [x] Keep the final light checkpoint white with indigo text, retaining warm ground illumination and bloom.
-- [x] Remove the light switch; retain automatic illumination and chapter navigation.
+- [x] Add an accessible On/Off switch between the finished model and text; preserve automatic illumination by default and user choice while scrolling.
 - [x] Keep the guide attached to the first printed layers and fade it only once solid geometry is visible, with no empty handoff.
 - [x] Remove cross-brace spans from rendered geometry and shadows without changing the base, outer shell, or source STL; retain the small attachment junctions.
 - [x] Precompile shaders before scene readiness and make printing travel respond promptly without shortening the full animation.
 - [x] Reverse the lamp's 180-degree upright printing rotation, retaining the small zoom.
 - [x] Use a slower reversed 45-degree assembly turn, synchronized with shrink/drop and reversible without changing the final cable orientation.
 - [x] Start assembly immediately at shade-print completion with a modest initial velocity, removing the post-print hold.
+- [x] Start the base near the visible shade rim so initial movement is not concealed; verify early blue pixels on phone and desktop.
+- [x] Enlarge the resting outline on phone and desktop while preserving text clearance and the aligned print handoff.
 - [x] Trace the active layer with a model-profiled filament and finish the strand at completion.
 - [x] Keep a white filament tracing the printed shade; remove filament entirely during base assembly.
 - [x] Enlarge the shade-only pose, then start the base drop and shade shrink/lift simultaneously on one easing curve; keep the base independently floor-aligned.
@@ -102,7 +104,7 @@ below the enlarged lamp and above the footer. Pixel checks find no dark shadow
 pixels at either canvas edge. Rotation reaches 3.1416 radians, and the filament
 is active during assembly but absent at completion. Lit-surface checks retain
 warm detail without clipping into the white page. Reverse wheel and Back to top
-restore the opening at desktop and mobile sizes; the light switch is absent.
+restore the opening at desktop and mobile sizes; the light switch is confined to the finished-lamp section.
 
 The original STL remains approximately 19 MB. A lighter production model is a
 future bandwidth optimization, not a change to the supplied geometry here.

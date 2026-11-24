@@ -55,6 +55,7 @@ function App() {
   const [reducedMotion, setReducedMotion] = useState(() => matchMedia('(prefers-reduced-motion: reduce)').matches)
   const [modelReady, setModelReady] = useState(false)
   const [progress, setProgress] = useState(0)
+  const [lampEnabled, setLampEnabled] = useState(true)
   const handleModelReady = useCallback(() => setModelReady(true), [])
   const checkpointNavigation = useRef<(top: number) => void>((top) => window.scrollTo({ top, behavior: 'instant' }))
   const story = useRef<HTMLElement>(null)
@@ -62,7 +63,7 @@ function App() {
   const heroOpacity = Math.max(0, 1 - entrance / 0.3)
   const storyOpacity = Math.max(0, Math.min(1, (entrance - 0.93) / 0.07))
   const activeChapter = progress < 0.9 ? 0 : 1
-  const lightOn = progress >= 0.9
+  const lightOn = progress >= 0.9 && lampEnabled
   const complete = progress >= 0.9 || (reducedMotion && entrance >= 1)
   const centered = entrance >= 0.65
   const nextSectionLabel = activeChapter < chapters.length - 1 ? 'Continue to warm light' : 'View specifications'
@@ -258,7 +259,8 @@ function App() {
               </div>
             </section>
             <section className="story-presentation" id="making" aria-label="The story of Kaman" inert={entrance < 0.6} style={{ opacity: storyOpacity, visibility: storyOpacity > 0 ? 'visible' : 'hidden' }}>
-              <div className="narrative">
+              <div className={`narrative ${activeChapter === chapters.length - 1 ? 'narrative--with-switch' : ''}`}>
+                {activeChapter === chapters.length - 1 && <div className="lamp-controls"><button className="lamp-switch" type="button" role="switch" aria-label="Lamp light" aria-checked={lampEnabled} title={lampEnabled ? 'Turn lamp off' : 'Turn lamp on'} disabled={!modelReady} onClick={() => setLampEnabled((enabled) => !enabled)}><span className="lamp-switch-track" aria-hidden="true"><span className="lamp-switch-thumb" /></span></button><span className="lamp-switch-status" aria-hidden="true">{lampEnabled ? 'On' : 'Off'}</span></div>}
                 <div className="chapter-label"><span>0{activeChapter + 1}</span><span>{chapters[activeChapter].label}</span></div>
                 <div className="chapter-copy" key={activeChapter}>
                   <h2>{chapters[activeChapter].title}</h2>
@@ -276,7 +278,7 @@ function App() {
         <section className="details-section" id="details" aria-labelledby="details-title">
           <div className="details-inner">
           <div className="details-heading"><span className="eyebrow">SPECIFICATIONS / 25F-KAM-01</span><h2 id="details-title">The finer<br />print.</h2><div className="technical-drawing"><img src={`${assetBase}lamp-drawing.svg`} alt="Kaman table lamp, in outline" /></div></div>
-          <div className="details-content"><p>160 mm tall. 200 mm wide. Four arches, all the way around.</p><dl><div><dt>Edition</dt><dd>Bagru</dd></div><div><dt>Dimensions</dt><dd>160 (H) × 200 (W) mm</dd></div><div><dt>Material</dt><dd>Polylactic Acid (PLA)</dd></div><div><dt>Production</dt><dd>3D printed</dd></div><div><dt>Light colour</dt><dd>3000K / warm white</dd></div><div><dt>Power supply</dt><dd>220–240V AC, 50Hz</dd></div></dl><a className="return-link" href="#making" onClick={(event) => { event.preventDefault(); goToChapter(1) }}>See Kaman lit <ArrowUpRight size={20} /></a></div>
+          <div className="details-content"><p>160 mm tall. 200 mm wide. Four arches, all the way around.</p><dl><div><dt>Edition</dt><dd>Bagru</dd></div><div><dt>Dimensions</dt><dd>160 (H) × 200 (W) mm</dd></div><div><dt>Material</dt><dd>Polylactic Acid (PLA)</dd></div><div><dt>Production</dt><dd>3D printed</dd></div><div><dt>Light colour</dt><dd>3000K / warm white</dd></div><div><dt>Power supply</dt><dd>220–240V AC, 50Hz</dd></div></dl><a className="return-link" href="#making" onClick={(event) => { event.preventDefault(); setLampEnabled(true); goToChapter(1) }}>See Kaman lit <ArrowUpRight size={20} /></a></div>
           </div>
         </section>
       </main>

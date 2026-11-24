@@ -68,7 +68,9 @@ function shadePose(progress: number, reducedMotion: boolean, width: number) {
 
 function baseHeight(progress: number, reducedMotion: boolean, width: number) {
   const shade = shadePose(printingEnd, reducedMotion, width)
-  return (shadeStart * shade.scale + shade.offsetY) * (1 - formation(progress, reducedMotion).base)
+  const occlusionHeight = (2 * shade.scale - 1.18) * 0.18
+  const startingHeight = shadeStart * shade.scale + shade.offsetY - occlusionHeight
+  return startingHeight * (1 - formation(progress, reducedMotion).base)
 }
 
 function graphicRotation(camera: THREE.Quaternion, tilt: number, rotation: THREE.Euler) {
@@ -503,10 +505,11 @@ function StudioCamera({ progress, reducedMotion }: Pick<LampSceneProps, 'progres
     if (!(activeCamera instanceof THREE.PerspectiveCamera)) return
     const mobile = state.size.width <= 650
     const compact = mobile && state.size.height <= 700
+    const desktopOffset = !mobile && state.size.height <= 900 ? 0.06 + assemblyMotion(progress, reducedMotion).base * 0.03 : 0
     const zoom = printMotion(progress, reducedMotion).zoom * (compact ? 1.05 : mobile ? 1.15 : 1.28)
     activeCamera.zoom = zoom
     activeCamera.setViewOffset(state.size.width, state.size.height,
-      0, state.size.height * (compact ? 0.15 : 0.10),
+      0, state.size.height * ((compact ? 0.15 : 0.10) + desktopOffset),
       state.size.width, state.size.height)
   })
   return null
@@ -661,7 +664,7 @@ function PrintedLamp({ progress, entrance = 1, lightOn, reducedMotion, onReady }
       pose.offset.set(startHorizontal * 2 - 1, 1 - startVertical * 2, pose.projected.z).unproject(state.camera).sub(pose.center)
       outline.current.position.copy(pose.center).addScaledVector(pose.offset, 1 - entrance)
       outline.current.position.y += Math.sin(tilt * Math.PI) * 0.08
-      const flatWidth = Math.min(window.innerWidth * 0.56, 500)
+      const flatWidth = Math.min(window.innerWidth * 0.78, 610, state.size.height * 0.74)
       const flatScale = flatWidth / (4 * pixelsPerUnit)
       const scale = THREE.MathUtils.lerp(startScale, THREE.MathUtils.lerp(flatScale, 1, tilt), entrance)
       outline.current.scale.setScalar(scale)
