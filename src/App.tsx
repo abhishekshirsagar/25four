@@ -56,10 +56,11 @@ function App() {
   const entrance = reducedMotion ? Number(progress > 0.004) : Math.min(1, progress / 0.06)
   const heroOpacity = Math.max(0, 1 - entrance / 0.3)
   const storyOpacity = Math.max(0, Math.min(1, (entrance - 0.93) / 0.07))
-  const activeChapter = progress < 0.78 ? 0 : 1
-  const lightOn = progress >= 0.78
-  const complete = progress >= 0.78 || (reducedMotion && entrance >= 1)
+  const activeChapter = progress < 0.9 ? 0 : 1
+  const lightOn = progress >= 0.9
+  const complete = progress >= 0.9 || (reducedMotion && entrance >= 1)
   const centered = entrance >= 0.65
+  const nextSectionLabel = activeChapter < chapters.length - 1 ? 'Continue to warm light' : 'View specifications'
 
   useEffect(() => {
     const preference = matchMedia('(prefers-reduced-motion: reduce)')
@@ -214,6 +215,11 @@ function App() {
     checkpointNavigation.current(scrollY + bounds.top + (bounds.height - innerHeight) * position)
   }
 
+  function advanceStory() {
+    if (activeChapter < chapters.length - 1) goToChapter(activeChapter + 1)
+    else if (story.current) checkpointNavigation.current(scrollY + story.current.getBoundingClientRect().bottom)
+  }
+
   function restartPresentation() {
     checkpointNavigation.current(0)
   }
@@ -229,7 +235,7 @@ function App() {
               <HeroArtwork ready={modelReady} />
               <div className="hero-type" style={{ opacity: heroOpacity }}>
                 <div className="hero-lockup">
-                  <p className="hero-poem"><span>A little Rajasthan.</span><span>No suitcase required.</span></p>
+                  <p className="hero-poem"><span>Rooted in Rajasthan.</span><span>Arches. Indigo. Warmth.</span></p>
                   <h1 className="product-title" id="product-title"><span>KAMAN</span><strong>BAGRU</strong></h1>
                 </div>
                 <div className="landing-bottom"><a className="discover-link" href="#making" title="Discover Kaman" aria-label="Discover Kaman" onClick={(event) => { event.preventDefault(); goToChapter(0) }}><ArrowDown size={22} /></a></div>
@@ -242,7 +248,7 @@ function App() {
                   <h2>{chapters[activeChapter].title}</h2>
                   <p>{chapters[activeChapter].body}</p>
                 </div>
-                <nav className="chapter-nav" aria-label="Product story chapters">{chapters.map((chapter, index) => <button key={chapter.label} onClick={() => goToChapter(index)} aria-label={`Chapter ${index + 1}: ${chapter.label.toLowerCase()}`} aria-current={index === activeChapter ? 'step' : undefined}><span>0{index + 1}</span><i /></button>)}</nav>
+                <nav className="chapter-nav" aria-label="Continue the product story"><button type="button" onClick={advanceStory} aria-label={nextSectionLabel} title={nextSectionLabel}><ArrowDown size={22} /></button></nav>
               </div>
               <div className="story-bottom"><span>ARCH / FILAMENT / LIGHT</span><div className="story-progress" role="progressbar" aria-label="Kaman story progress" aria-valuenow={Math.round(progress * 100)} aria-valuemin={0} aria-valuemax={100}><i /></div><span>25F-KAM-01</span></div>
             </section>

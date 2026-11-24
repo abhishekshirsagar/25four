@@ -26,7 +26,8 @@
 
 ## Scroll And Light
 - [x] Use the selected Making and Vibe copy in two centered story chapters with the model above the text.
-- [x] Add eased wheel, touch, keyboard, and chapter-control scroll checkpoints, including reverse travel.
+- [x] Add eased wheel, touch, keyboard, and next-arrow scroll checkpoints, including reverse travel.
+- [x] Replace numbered chapter controls with a single 44 px down arrow that advances to Vibe, then specifications.
 - [x] Use exactly two story stops: Making at the outline and Vibe at the illuminated lamp, with no completed-shade checkpoint.
 - [x] Mirror easing curves for upward travel so reverse motion retraces the forward timing.
 - [x] Run printing travel at half its previous speed while keeping opening and Back to top responsive.
@@ -38,8 +39,8 @@
 - [x] Remove the light switch; retain automatic illumination and chapter navigation.
 - [x] Keep the guide attached to the first printed layers and fade it only once solid geometry is visible, with no empty handoff.
 - [x] Precompile shaders before scene readiness and make printing travel respond promptly without shortening the full animation.
-- [x] Rotate the lamp 180 degrees around its upright axis during printing, with a small zoom.
-- [x] Add another 180-degree upright rotation during assembly, synchronized with shrink/drop and reversible without changing the final cable orientation.
+- [x] Reverse the lamp's 180-degree upright printing rotation, retaining the small zoom.
+- [x] Use a slower reversed 45-degree assembly turn, synchronized with shrink/drop and reversible without changing the final cable orientation.
 - [x] Trace the active layer with a model-profiled filament and finish the strand at completion.
 - [x] Keep a white filament tracing the printed shade; remove filament entirely during base assembly.
 - [x] Enlarge the shade-only pose, then start the base drop and shade shrink/lift simultaneously on one easing curve; keep the base independently floor-aligned.
