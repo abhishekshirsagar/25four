@@ -21,8 +21,8 @@ npm run preview
 
 ## Editing
 
-- `src/App.tsx`: reversible landing-to-story timeline, three scroll chapters, centered completion layout, chapter navigation, and product specifications.
-- `src/LampScene.tsx`: actual STL geometry, rounded contour, flat-to-3D transformation, shade-first print shader, scroll-driven half-turn, active-layer filament, and internal illumination.
+- `src/App.tsx`: reversible landing-to-story timeline, two story sections, centered completion layout, next-section navigation, and product specifications.
+- `src/LampScene.tsx`: actual STL geometry, rounded contour, flat-to-3D transformation, shade-first print shader, scroll-driven rotation, and internal illumination.
 - `src/index.css`: locally bundled typography, palette, and global styles.
 - `src/product.css`: page layout and responsive styles.
 - `Full lamp.stl`: the supplied source model, bundled as a local asset by Vite.
@@ -33,7 +33,7 @@ The first screen follows Figma frame 8:1956: a solid indigo arch, a subtle field
 
 After the opening, scrolling has two story stops: Making at the outline and Vibe at the complete illuminated lamp. Printing, the enlarged shade pose, and assembly run as one continuous journey without a completed-shade checkpoint. The Making copy remains until the lamp lights, then switches to Vibe. A single down arrow replaces numbered chapter controls: it advances from Making to Vibe, then to specifications. Wheel, touch, Page Up/Down, and arrows use the same destinations. The forward vector-to-print handoff has a dedicated 1.2-second duration, followed by the existing printing curve with distance-proportional timing. The opening retains its gentle 2.4-second transition. Upward travel reverses the scene with a responsive initial velocity and smooth settling rather than a flat mirrored ease-in. Tiny trackpad reversals are ignored; deliberate reverse gestures remain available. Native scrolling resumes below the product experience. Reduced motion uses immediate checkpoint changes.
 
-The flat outline rests at 45 degrees, then turns an additional 45 degrees during the controlled hinge into the shade's bottom rim. Its target vertices compensate for the combined turn so the final rim aligns point-for-point with the actual lamp. Printing starts while the guide is still visible; the guide follows the same scale, position, and rotation as the first layers and fades only after solid geometry is present. This avoids an empty handoff or a detached lower rim. While printing, the lamp turns 180 degrees around its upright axis. The shade enlarges during printing, with a white filament tracing its top edge. The internal support column and its shadow are excluded during printing; the cross-brace spans are filtered from the rendered geometry in every stage, retaining mount and shell junctions. Without stopping, the base drops and the shade shrinks and lifts simultaneously, sharing one continuous easing value. The base starts inside the shade, concealed above its lower edge, and remains at its final size and floor-relative position independently of the shade's scale. It emerges at full color without fading in or intersecting through the shade's sides; the shadow shader uses the same concealment. A faint, broad ground shadow is already present beneath the shade; it tightens and strengthens as the base approaches the floor, avoiding a sudden shadow pop. The filament stops as the base emerges. Floor contact switches on the lamp and ground illumination in the same frame and triggers the Vibe copy, with no delayed light ramp. The same sequence reverses when scrolling upward.
+The flat outline rests at 45 degrees, then turns an additional 45 degrees during the controlled hinge into the shade's bottom rim. Its target vertices compensate for the combined turn so the final rim aligns point-for-point with the actual lamp. Printing starts while the guide is still visible; the guide follows the same scale, position, and rotation as the first layers and fades only after solid geometry is present. This avoids an empty handoff or a detached lower rim. While printing, the lamp turns 180 degrees around its upright axis. The shade enlarges as the print-height shader reveals each layer; there is no moving filament strand or tip. The internal support column and its shadow are excluded during printing; the cross-brace spans are filtered from the rendered geometry in every stage, retaining mount and shell junctions. Without stopping, the base drops and the shade shrinks and lifts simultaneously, sharing one continuous easing value. The base starts inside the shade, concealed above its lower edge, and remains at its final size and floor-relative position independently of the shade's scale. It emerges at full color without fading in or intersecting through the shade's sides; the shadow shader uses the same concealment. A faint, broad ground shadow is already present beneath the shade; it tightens and strengthens as the base approaches the floor, avoiding a sudden shadow pop. Floor contact switches on the lamp and ground illumination in the same frame and triggers the Vibe copy, with no delayed light ramp. The same sequence reverses when scrolling upward.
 
 The handoff uses the actual shade rim at model height `1.6`, separate from the
 material split at `1.55`. The guide and first printed layer share this plane.
@@ -76,7 +76,7 @@ animated surface share the same dimensions and alignment.
 
 The landing and story share one sticky viewport and one persistent Three.js canvas. A single mesh, sampled from the original Figma SVG through SVGLoader, renders both fill and edge. Its planar vertices morph toward the STL perimeter during the 3D tilt rather than swapping graphics. Actual camera projection determines screen position and scale in the stable viewport. The white backdrop is rendered as a linear compositor pass before bloom and output conversion. The source SVG and STL assets are unchanged.
 
-The 3D scene is lazy-loaded separately. Models, fonts, and graphic motifs are local; no remote image, HDR, or model service is required. Reduced-motion preferences disable rotation, zoom, and moving filament; entering the story displays the complete, centered, stationary lamp. A static illustration with retry is available if WebGL fails.
+The 3D scene is lazy-loaded separately. Models, fonts, and graphic motifs are local; no remote image, HDR, or model service is required. Reduced-motion preferences disable rotation and zoom; entering the story displays the complete, centered, stationary lamp. A static illustration with retry is available if WebGL fails.
 
 ## Hosting
 
@@ -93,7 +93,9 @@ height `3.2`. The bulb mesh and main point light are centered at `[0, 2.05, 0]`,
 inside the shade above the base. A secondary spill light is lower, at
 `[0, 1.35, 0.2]`. The shade's material adds simulated transmission around the
 bulb, and the floor pool is a separate shader. These activate at floor contact;
-the lighting is a visualization rather than a physical simulation.
+the lighting is a visualization rather than a physical simulation. An additional
+surface-transmission term brightens the middle and lower shade, fading out before
+the top opening. Bulb intensity and the floor-pool settings remain unchanged.
 
 ## Runtime Performance
 
@@ -101,8 +103,8 @@ the lighting is a visualization rather than a physical simulation.
 - The lit-lamp-to-details handoff uses browser-native smooth scrolling with a 650 ms guided-input guard. The completed presentation and memoized scene stay fixed while leaving the story, with no per-frame scroll writes or style updates. The sticky presentation uses a compositor layer; canvas scroll-position measurements are disabled, but element-size observation remains enabled.
 - Guided transitions retain wheel, touch, and keyboard ownership until completion, preventing native scrolling from fighting the final exit. Native scrolling resumes afterward.
 - Lamp shaders are precompiled once before scene readiness, keeping cold shader setup out of the first printing interaction. The opening poster remains available while that completes.
-- The white shade filament is capped at 24 requested frames per second while visible; hidden tabs and off-screen scenes pause rendering.
-- Shadow maps update in the same render frame as model changes, then stay cached during the idle filament loop.
+- Hidden tabs and off-screen scenes pause rendering; there is no filament-specific continuous loop.
+- Shadow maps update in the same render frame as model changes, then stay cached while idle.
 - Pixel ratio is capped at 1.25, and the renderer no longer forces a high-performance GPU preference.
 - Standard material shading avoids unnecessary clearcoat and sheen calculations. Internal glow and bloom remain.
 - The parsed STL is normalized once in place, avoiding a duplicate copy of its vertex buffers. The original source file on disk is unchanged.
@@ -110,7 +112,7 @@ the lighting is a visualization rather than a physical simulation.
 
 A local render-counter check recorded zero new frames over 1.1 seconds for the
 settled final lamp and for a hidden tab after its in-flight frame completed.
-The filament loop resumed when visible. These are rendering checks, not a
+These are rendering checks, not a
 cross-device CPU/battery benchmark. The original approximately 20 MB STL and its
 399,942 triangles remain the main first-load/active-draw cost; offline geometry
 decimation or compression is still a possible follow-up.

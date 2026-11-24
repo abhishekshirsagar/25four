@@ -48,8 +48,8 @@
 - [x] Start assembly immediately at shade-print completion with a modest initial velocity, removing the post-print hold.
 - [x] Start the base near the visible shade rim so initial movement is not concealed; verify early blue pixels on phone and desktop.
 - [x] Enlarge the resting outline on phone and desktop while preserving text clearance and the aligned print handoff.
-- [x] Trace the active layer with a model-profiled filament and finish the strand at completion.
-- [x] Keep a white filament tracing the printed shade; remove filament entirely during base assembly.
+- [x] Remove the filament strand, tip, profile calculation and continuous loop while preserving layer-by-layer shader printing.
+- [x] Increase transmission through the middle/lower shade surfaces without increasing bulb intensity or the floor pool.
 - [x] Enlarge the shade-only pose, then start the base drop and shade shrink/lift simultaneously on one easing curve; keep the base independently floor-aligned.
 - [x] Trigger brighter illumination only when the base reaches the floor.
 - [x] Spawn the blue base inside the shade, conceal its hidden portion, and accelerate it straight down without fading in; light the lamp and floor immediately at contact.
@@ -74,7 +74,7 @@
 - [x] Give the specifications band an indigo background with white text and line artwork.
 
 ## Verification
-- [x] Stop idle/hidden/off-screen rendering, cap the visible filament loop, cache shadows, and avoid duplicated STL buffers.
+- [x] Stop idle/hidden/off-screen rendering, remove the filament loop, cache shadows, and avoid duplicated STL buffers.
 - [x] Pass production TypeScript/Vite build and lint.
 - [x] Inspect desktop and mobile opening, handoff, tilt, print midpoint, and lit end screenshots.
 - [x] Verify nonblank canvas pixels, scroll-driven formation, and illumination changes.
@@ -102,8 +102,8 @@ story are hidden during the shrinking-arch midpoint to avoid visual overlaps.
 Completion revision: desktop story, canvas, details, and footer measure exactly
 960 px maximum; phone width is 390 px without overflow. Completed text is centered
 below the enlarged lamp and above the footer. Pixel checks find no dark shadow
-pixels at either canvas edge. Rotation reaches 3.1416 radians, and the filament
-is active during assembly but absent at completion. Lit-surface checks retain
+pixels at either canvas edge. The filament overlay is removed while the shader
+still builds the shade layer by layer. Lit-surface checks retain
 warm detail without clipping into the white page. Reverse wheel and Back to top
 restore the opening at desktop and mobile sizes; the light switch is confined to the finished-lamp section.
 

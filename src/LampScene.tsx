@@ -1,5 +1,5 @@
 import { Component, memo, Suspense, useEffect, useEffectEvent, useLayoutEffect, useRef, useState } from 'react'
-import type { ReactNode, RefObject } from 'react'
+import type { ReactNode } from 'react'
 import { Canvas, useFrame, useLoader, useThree } from '@react-three/fiber'
 import * as THREE from 'three'
 import { STLLoader } from 'three/addons/loaders/STLLoader.js'
@@ -10,9 +10,6 @@ import { RenderPass } from 'three/addons/postprocessing/RenderPass.js'
 import { ShaderPass } from 'three/addons/postprocessing/ShaderPass.js'
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js'
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js'
-import { Line2 } from 'three/addons/lines/Line2.js'
-import { LineGeometry } from 'three/addons/lines/LineGeometry.js'
-import { LineMaterial } from 'three/addons/lines/LineMaterial.js'
 import lampUrl from '../Full lamp.stl?url'
 
 export type LampSceneProps = {
@@ -31,7 +28,6 @@ const internalColumnRadius = 0.9
 const internalColumnTop = 1.9
 const normalizedModels = new WeakMap<THREE.BufferGeometry, THREE.BufferGeometry>()
 const rimOutlines = new WeakMap<THREE.BufferGeometry, THREE.Vector3[]>()
-const filamentProfiles = new WeakMap<THREE.BufferGeometry, Float32Array>()
 const baseColor = new THREE.Color('#02144c')
 const shadeColor = new THREE.Color('#f6f5f0')
 const warmColor = new THREE.Color('#ffbf75')
@@ -340,13 +336,15 @@ function createPrintMaterial() {
         float transmittedLight = exp(-distanceFromBulb * 1.05);
         vec3 transmittedColor = mix(vec3(1.0, 0.43, 0.12), vec3(1.0, 0.93, 0.75), transmittedLight);
         totalEmissiveRadiance += transmittedColor * lampLight * shadeMask * (0.16 + transmittedLight * transmittedLight * 6.8);
+        float surfaceGlow = smoothstep(1.66, 1.95, vLampPosition.y) * (1.0 - smoothstep(2.7, 3.08, vLampPosition.y));
+        totalEmissiveRadiance += transmittedColor * lampLight * shadeMask * surfaceGlow * (0.65 + transmittedLight * 0.75);
         totalEmissiveRadiance += lampWarm * printEdge * 0.12;`)
       .replace('#include <opaque_fragment>', `
         vec3 glowingSurface = outgoingLight / (vec3(1.0) + outgoingLight * 0.60);
         outgoingLight = mix(outgoingLight, glowingSurface, lampLight * shadeMask);
         #include <opaque_fragment>`)
   }
-  material.customProgramCacheKey = () => '25four-assembly-v11'
+  material.customProgramCacheKey = () => '25four-assembly-v12'
 
   const depthMaterial = new THREE.MeshDepthMaterial({
     depthPacking: THREE.RGBADepthPacking,
@@ -380,116 +378,6 @@ function createPrintMaterial() {
   }
   depthMaterial.customProgramCacheKey = () => '25four-assembly-depth-v10'
   return { material, depthMaterial, uniforms }
-}
-
-function filamentProfile(geometry: THREE.BufferGeometry) {
-  const cached = filamentProfiles.get(geometry)
-  if (cached) return cached
-  const levels = 80
-  const angles = 180
-  const profile = new Float32Array(levels * angles)
-  const positions = geometry.getAttribute('position')
-  for (let vertex = 0; vertex < positions.count; vertex++) {
-    const horizontal = positions.getX(vertex)
-    const depth = positions.getZ(vertex)
-    const level = Math.min(levels - 1, Math.max(0, Math.floor(positions.getY(vertex) / modelHeight * levels)))
-    const angle = Math.floor(((Math.atan2(depth, horizontal) + Math.PI * 2) % (Math.PI * 2)) / (Math.PI * 2) * angles)
-    const index = level * angles + angle
-    profile[index] = Math.max(profile[index], Math.hypot(horizontal, depth))
-  }
-  const filled = profile.slice()
-  for (let level = 0; level < levels; level++) {
-    for (let angle = 0; angle < angles; angle++) {
-      let radius = 0
-      for (let quarter = 0; quarter < 4; quarter++) radius = Math.max(radius, profile[level * angles + (angle + quarter * angles / 4) % angles])
-      if (!radius) {
-        for (let distance = 1; distance < levels; distance++) {
-          const below = profile[Math.max(0, level - distance) * angles + angle]
-          const above = profile[Math.min(levels - 1, level + distance) * angles + angle]
-          if (below || above) { radius = below && above ? (below + above) / 2 : below || above; break }
-        }
-      }
-      filled[level * angles + angle] = radius || 0.3
-    }
-  }
-  filamentProfiles.set(geometry, filled)
-  return filled
-}
-
-function Filament({ geometry, printing, reducedMotion, progress }: {
-  geometry: THREE.BufferGeometry
-  printing: RefObject<ReturnType<typeof createPrintMaterial> | null>
-  reducedMotion: boolean
-  progress: number
-}) {
-  const root = useRef<THREE.Group>(null)
-  const strand = useRef<Line2>(null)
-  const tip = useRef<THREE.Mesh<THREE.SphereGeometry, THREE.MeshBasicMaterial>>(null)
-  const profile = filamentProfile(geometry)
-  const [points] = useState(() => Array.from({ length: 97 }, () => new THREE.Vector3()))
-  useLayoutEffect(() => {
-    if (!root.current) return
-    const lineGeometry = new LineGeometry()
-    lineGeometry.setPositions(new Float32Array(points.length * 3))
-    const material = new LineMaterial({ color: '#ffffff', linewidth: 2.4, transparent: true, opacity: 0.9 })
-    const line = new Line2(lineGeometry, material)
-    line.frustumCulled = false
-    root.current.add(line)
-    strand.current = line
-    const owner = root.current
-    return () => { owner.remove(line); strand.current = null; lineGeometry.dispose(); material.dispose() }
-  }, [points])
-  useFrame((state) => {
-    if (!root.current || !strand.current || !printing.current) return
-    const uniforms = printing.current.uniforms
-    const reveal = uniforms.printReveal.value
-    root.current.visible = !reducedMotion && progress > 0.18 && formation(progress, false).base < 0.001 && reveal > 0.003
-    if (!root.current.visible) return
-    strand.current.material.color.set('#ffffff')
-    const height = Math.min(modelHeight - 0.01, uniforms.printHeight.value)
-    const level = Math.max(0, Math.min(79, height / modelHeight * 79))
-    const lower = Math.floor(level)
-    const upper = Math.min(79, lower + 1)
-    const radiusAt = (angle: number) => {
-      const position = ((angle / (Math.PI * 2) % 1 + 1) % 1) * 180
-      const before = Math.floor(position)
-      const after = (before + 1) % 180
-      const sample = (layer: number) => THREE.MathUtils.lerp(profile[layer * 180 + before], profile[layer * 180 + after], position - before)
-      return THREE.MathUtils.lerp(sample(lower), sample(upper), level - lower) + 0.012
-    }
-    const headAngle = reveal * Math.PI * 44 + state.clock.elapsedTime * 1.8
-    for (let segment = 0; segment <= 64; segment++) {
-      const fraction = segment / 64
-      const angle = headAngle - (1 - fraction) * 0.95
-      const radius = radiusAt(angle)
-      points[segment].set(Math.cos(angle) * radius, height + 0.008 - (1 - fraction) * 0.008, Math.sin(angle) * radius)
-    }
-    const head = points[64]
-    if (tip.current) {
-      tip.current.position.copy(head)
-      tip.current.material.color.set('#ffffff')
-    }
-    for (let segment = 65; segment < points.length; segment++) {
-      const fraction = (segment - 64) / 32
-      const feedHeight = reveal >= 0.995 ? 0.25 : 0.5
-      points[segment].set(head.x + 0.14 * Math.sin(fraction * Math.PI / 2), head.y + fraction * feedHeight, head.z - 0.09 * fraction)
-    }
-    const start = strand.current.geometry.getAttribute('instanceStart')
-    const end = strand.current.geometry.getAttribute('instanceEnd')
-    for (let segment = 0; segment < points.length - 1; segment++) {
-      start.setXYZ(segment, points[segment].x, points[segment].y, points[segment].z)
-      end.setXYZ(segment, points[segment + 1].x, points[segment + 1].y, points[segment + 1].z)
-    }
-    start.needsUpdate = true
-    end.needsUpdate = true
-    strand.current.material.resolution.set(state.size.width, state.size.height)
-  })
-  return <group ref={root} visible={false}>
-    <mesh ref={tip}>
-      <sphereGeometry args={[0.022, 12, 8]} />
-      <meshBasicMaterial color="#ffffff" />
-    </mesh>
-  </group>
 }
 
 function StudioCamera({ progress, reducedMotion }: Pick<LampSceneProps, 'progress' | 'reducedMotion'>) {
@@ -726,7 +614,6 @@ function PrintedLamp({ progress, entrance = 1, lightOn, reducedMotion, onReady }
       </group>
       <group ref={group} rotation={[0, lampStartRotation, 0]}>
         <mesh ref={mesh} geometry={geometry} visible={false} castShadow receiveShadow dispose={null} />
-        <Filament geometry={geometry} printing={printing} reducedMotion={reducedMotion} progress={progress} />
         <mesh position={[0, 2.05, 0]} visible={lightOn && entrance >= 1}>
           <sphereGeometry args={[0.13, 24, 16]} />
           <meshStandardMaterial color="#fff5da" emissive="#fff0c4" emissiveIntensity={1.8} />
@@ -830,12 +717,11 @@ function SceneFrames({ active, ready, progress, entrance, lightOn, reducedMotion
   }, [renderer])
   useEffect(() => {
     if (!active) return
-    const looping = !reducedMotion && progress > 0.18 && formation(progress, false).base < 0.001
     const settleUntil = performance.now() + (reducedMotion ? 0 : 1400)
     let timer = 0
     const draw = () => {
       invalidate()
-      if (looping || performance.now() < settleUntil) timer = window.setTimeout(draw, 1000 / (looping ? 24 : 30))
+      if (performance.now() < settleUntil) timer = window.setTimeout(draw, 1000 / 30)
     }
     draw()
     return () => clearTimeout(timer)
@@ -882,7 +768,6 @@ export default memo(function LampScene({ progress, entrance = 1, lightOn, reduce
       data-base-height={baseHeight(safeProgress, reducedMotion, window.innerWidth).toFixed(4)}
       data-print-rotation={printMotion(safeProgress, reducedMotion).rotationY.toFixed(4)}
       data-print-axis="upright"
-      data-filament-active={!reducedMotion && safeProgress > 0.18 && formation(safeProgress, false).base < 0.001}
       data-print-zoom={printMotion(safeProgress, reducedMotion).zoom.toFixed(4)}
       data-lamp-light={lightOn ? 'on' : 'off'}
       style={{ position: 'relative', width: '100%', height: '100%', minHeight: 200 }}>
