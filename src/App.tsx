@@ -50,14 +50,10 @@ function App() {
   const [reducedMotion, setReducedMotion] = useState(() => matchMedia('(prefers-reduced-motion: reduce)').matches)
   const [modelReady, setModelReady] = useState(false)
   const [progress, setProgress] = useState(0)
-  const [autoEntrance, setAutoEntrance] = useState(0)
-  const [scrollDriven, setScrollDriven] = useState(false)
   const handleModelReady = useCallback(() => setModelReady(true), [])
-  const entranceFrame = useRef(0)
-  const previousProgress = useRef(0)
   const checkpointNavigation = useRef<(top: number) => void>((top) => window.scrollTo({ top, behavior: 'instant' }))
   const story = useRef<HTMLElement>(null)
-  const entrance = reducedMotion ? Number(progress > 0.004) : scrollDriven ? Math.min(1, progress / 0.06) : Math.max(autoEntrance, Math.min(1, progress / 0.06))
+  const entrance = reducedMotion ? Number(progress > 0.004) : Math.min(1, progress / 0.06)
   const heroOpacity = Math.max(0, 1 - entrance / 0.3)
   const storyOpacity = Math.max(0, Math.min(1, (entrance - 0.93) / 0.07))
   const activeChapter = progress < 0.24 ? 0 : progress < 0.78 ? 1 : 2
@@ -73,22 +69,6 @@ function App() {
   }, [])
 
   useEffect(() => {
-    if (!modelReady || reducedMotion || scrollDriven) return
-    let frame = 0
-    const from = entranceFrame.current
-    const startsAt = performance.now() + 2200
-    const animate = (now: number) => {
-      const elapsed = Math.max(0, Math.min(1, (now - startsAt) / openingTransitionMs))
-      const eased = easeOpening(elapsed)
-      entranceFrame.current = from + (1 - from) * eased
-      setAutoEntrance(entranceFrame.current)
-      if (elapsed < 1) frame = requestAnimationFrame(animate)
-    }
-    frame = requestAnimationFrame(animate)
-    return () => cancelAnimationFrame(frame)
-  }, [modelReady, reducedMotion, scrollDriven])
-
-  useEffect(() => {
     let frame = 0
     let motionFrame = 0
     let motionTimer = 0
@@ -102,7 +82,6 @@ function App() {
     let touchStart = 0
     let touchHorizontal = 0
     let touchHandled = false
-    let claimed = false
     const bounds = () => {
       const section = story.current!
       const origin = section.getBoundingClientRect().top + scrollY
@@ -110,20 +89,7 @@ function App() {
       return { origin, span, end: origin + span, positions: [...scrollCheckpoints.map((value) => origin + span * value), origin + section.offsetHeight] }
     }
     const inside = () => { const section = bounds(); return scrollY >= section.origin - 2 && scrollY <= section.end + 2 }
-    const claim = () => {
-      const section = bounds()
-      if (!claimed && previousProgress.current < 0.06 && entranceFrame.current > 0) {
-        const carried = entranceFrame.current * 0.06
-        window.scrollTo({ top: section.origin + section.span * carried, behavior: 'instant' })
-        previousProgress.current = carried
-        setProgress(carried)
-      }
-      entranceFrame.current = 0
-      claimed = true
-      setScrollDriven(true)
-    }
     const animateTo = (destination: number) => {
-      claim()
       cancelAnimationFrame(motionFrame)
       clearTimeout(motionTimer)
       clearTimeout(settleTimer)
@@ -165,7 +131,6 @@ function App() {
     }
     checkpointNavigation.current = animateTo
     const step = (nextDirection: number) => {
-      claim()
       const positions = bounds().positions
       const target = nextDirection > 0 ? positions.find((position) => position > scrollY + 3) : positions.findLast((position) => position < scrollY - 3)
       if (target !== undefined) animateTo(target)
@@ -175,8 +140,6 @@ function App() {
       if (!story.current) return
       const section = bounds()
       const next = Math.max(0, Math.min(1, (scrollY - section.origin) / section.span))
-      if (next < previousProgress.current - 0.00001) { claimed = true; entranceFrame.current = 0; setScrollDriven(true) }
-      previousProgress.current = next
       setProgress(Math.min(next, scrollCheckpoints[3]))
     }
     const schedule = () => {
@@ -250,9 +213,6 @@ function App() {
   }
 
   function restartPresentation() {
-    entranceFrame.current = 0
-    setAutoEntrance(0)
-    setScrollDriven(true)
     checkpointNavigation.current(0)
   }
 

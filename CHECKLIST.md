@@ -48,7 +48,8 @@
 - [x] Finish the half-turn with the cable notch facing the rear.
 - [x] Preserve the full-width first screen and 960 px post-opening maximum.
 - [x] Use a native smooth final-story exit with a 650 ms input guard, without per-frame scroll writes, style updates, or lamp redraws; preserve touch and return navigation.
-- [x] Reduce mobile model scale, keep model-to-text clearance, and align both opening surfaces with half the arch below the viewport; fit compact phones.
+- [x] Reduce mobile model scale, keep model-to-text clearance, and match the intended higher opening arch/title with cropped side steps across phone aspect ratios.
+- [x] Remove timed opening autoplay; keep the first screen stationary until scrolling or tapping the arrow, including after returning to the top.
 - [x] Fade the cast shadow before canvas edges rather than clipping it.
 - [x] Restore the opening on reverse scrolling and provide a header Back to top control.
 - [x] Add studio key, fill, rim lighting, and grounded contact shadows.
@@ -75,8 +76,8 @@ Reduced-motion model geometry remains stationary across scrolling. The new
 opening never locks scrolling; chapter buttons work at both sizes. No runtime
 errors or failed asset responses were observed. Preview: http://localhost:5173/.
 
-Continuous-transition revision: autoplay reaches the first story state with
-scrollY still zero, one canvas, and no separate hero/story outline elements.
+Continuous-transition revision: the opening stays stationary until user input,
+with one canvas and no separate hero/story outline elements.
 Desktop and mobile pixel checks find zero blue-base pixels at partial and
 completed shade-only phases, followed by visible blue pixels in the base phase.
 Automatic light and chapter navigation remain functional; the camera fits both viewport sizes.

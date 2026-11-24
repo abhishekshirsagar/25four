@@ -611,9 +611,9 @@ function PrintedLamp({ progress, entrance = 1, lightOn, reducedMotion, onReady }
       pose.right.setFromMatrixColumn(state.camera.matrixWorld, 0)
       pose.measure.copy(pose.center).add(pose.right).project(state.camera)
       const pixelsPerUnit = Math.abs(pose.measure.x - pose.projected.x) * state.size.width / 2
-      const startWidth = Math.max(window.innerWidth * 1.05, state.size.height * 1.10)
+      const startWidth = Math.max(window.innerWidth * (state.size.width <= 650 ? 2.4 : 1.05), state.size.height * 1.10)
       const startHorizontal = 0.5
-      const startVertical = state.size.width <= 650 ? 1 : 0.18 + startWidth / state.size.height / 2
+      const startVertical = 0.18 + startWidth / state.size.height / 2
       const startScale = startWidth / (4 * pixelsPerUnit)
       pose.offset.set(startHorizontal * 2 - 1, 1 - startVertical * 2, pose.projected.z).unproject(state.camera).sub(pose.center)
       outline.current.position.copy(pose.center).addScaledVector(pose.offset, 1 - entrance)

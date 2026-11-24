@@ -69,14 +69,14 @@
 }
 @media (max-width: 650px) {
   .experience-sticky { min-height: 0; }
-  .hero-graphic { top: 100%; transform: translate(-50%, -50%); }
+  .hero-graphic { top: 18%; width: max(240vw, 110svh); transform: translateX(-50%); }
   .site-header { top: 35px; }
   .wordmark { gap: 8px; }
   .wordmark-symbol { width: 43px; height: 13px; }
   .wordmark-symbol img { transform: scale(.5021); }
   .wordmark > span { font-size: 21px; }
   .header-link { font-size: 10px; gap: 8px; }
-  .hero-lockup { top: 73%; width: calc(100% - 40px); }
+  .hero-lockup { top: 62%; width: calc(100% - 40px); }
   .hero-poem { margin-bottom: 36px; font-size: 15px; line-height: 1.7; }
   .product-title span { font-size: 30px; margin-bottom: 10px; }
   .product-title strong { font-size: 76px; }
