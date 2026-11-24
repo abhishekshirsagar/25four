@@ -229,7 +229,7 @@ function App() {
       <a className="skip-link" href="#details">Skip to specifications</a>
       <main>
         <section className="experience" id="home" ref={story} aria-label="Kaman, the Bagru edition">
-          <div className="experience-sticky" data-chapter={activeChapter + 1} data-presentation={entrance.toFixed(4)} data-view={entrance >= 0.99 ? 'story' : 'opening'} data-complete={complete} data-centered={centered} data-lit={lightOn} style={{ '--story-progress': progress, '--entrance': entrance } as CSSProperties}>
+          <div className="experience-sticky" data-chapter={activeChapter + 1} data-presentation={entrance.toFixed(4)} data-view={entrance >= 0.99 ? 'story' : 'opening'} data-complete={complete} data-centered={centered} data-lit={lightOn} style={{ '--entrance': entrance } as CSSProperties}>
             <header className="site-header"><Wordmark onHome={restartPresentation} /><a className="header-link" href="#details">Shop now <ArrowUpRight size={15} /></a></header>
             <section className="landing" aria-labelledby="product-title" inert={entrance > 0.6} style={{ visibility: entrance < 1 ? 'visible' : 'hidden' }}>
               <HeroArtwork ready={modelReady} />
@@ -250,7 +250,6 @@ function App() {
                 </div>
                 <nav className="chapter-nav" aria-label="Continue the product story"><button type="button" onClick={advanceStory} aria-label={nextSectionLabel} title={nextSectionLabel}><ArrowDown size={22} /></button></nav>
               </div>
-              <div className="story-bottom"><span>ARCH / FILAMENT / LIGHT</span><div className="story-progress" role="progressbar" aria-label="Kaman story progress" aria-valuenow={Math.round(progress * 100)} aria-valuemin={0} aria-valuemax={100}><i /></div><span>25F-KAM-01</span></div>
             </section>
             <div className={`model-stage ${lightOn ? 'is-lit' : ''}`} role="img" aria-label={`Kaman Bagru table lamp, ${complete ? 'fully formed' : 'forming layer by layer'}, light ${lightOn ? 'on' : 'off'}`}>
               <Suspense fallback={null}><LampScene progress={Math.min(progress, finalCheckpoint)} entrance={entrance} lightOn={lightOn} reducedMotion={reducedMotion} onReady={handleModelReady} /></Suspense>
