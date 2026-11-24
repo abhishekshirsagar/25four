@@ -47,6 +47,11 @@ completion with a modest initial velocity, avoiding a hold between the phases.
 It shares its easing with the shade shrink and base drop, reverses with scrolling,
 lights at floor contact, and retains the finished rear-facing cable notch.
 
+Layer reveal stops at the actual model height, with no overshoot that makes the
+shade appear complete before assembly begins. Layer growth and printing yaw share
+a curve with nonzero finishing velocity, flowing into the assembly motion rather
+than slowing to a stop at the completed shade.
+
 The base's starting height accounts for the shade's projected occlusion, so its
 first descent is visible instead of being hidden inside the enlarged shade.
 The resting outline is sized from 78vw, capped at 610px and 74% of the scene
@@ -57,6 +62,11 @@ to On, retains the user's choice while scrolling, and controls material glow,
 point lights, the bulb, bloom, and the floor pool together. It is hidden during
 Making. "See Kaman lit" explicitly restores On. The switch supports keyboard
 activation and uses a 56 x 44px touch target; compact layouts preserve clearance.
+
+Making and Vibe share the same text anchor and typography at each viewport size.
+The switch sits closer to the lamp, with a larger gap to the copy. Final camera
+framing fits the model between the header and switch, interpolating during
+assembly; toggling illumination does not change that framing or scroll position.
 
 The vector's tilt and 45-degree turn use their own relaxed 1.2-second segment;
 the following print journey retains its established easing and proportional pace.

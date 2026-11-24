@@ -37,6 +37,12 @@ const vectorPrintRotation = Math.PI / 4
 const vectorTargetRotation = vectorRestRotation + vectorPrintRotation
 const assetBase = import.meta.env.BASE_URL
 
+function printProgress(progress: number, reducedMotion: boolean) {
+  if (reducedMotion) return 1
+  const travel = THREE.MathUtils.clamp((progress - 0.18) / (printingEnd - 0.18), 0, 1)
+  return travel * travel * (2.75 - 1.75 * travel)
+}
+
 function assemblyMotion(progress: number, reducedMotion: boolean) {
   if (reducedMotion) return { base: 1, shade: 1 }
   const travel = THREE.MathUtils.clamp((progress - printingEnd) / (0.9 - printingEnd), 0, 1)
@@ -46,14 +52,14 @@ function assemblyMotion(progress: number, reducedMotion: boolean) {
 
 function formation(progress: number, reducedMotion: boolean) {
   return {
-    shade: reducedMotion ? 1 : THREE.MathUtils.smoothstep(progress, 0.18, printingEnd),
+    shade: printProgress(progress, reducedMotion),
     base: assemblyMotion(progress, reducedMotion).base,
   }
 }
 
 function printMotion(progress: number, reducedMotion: boolean) {
   const movement = reducedMotion ? 0 : Math.sin(THREE.MathUtils.smoothstep(progress, 0.18, 0.72) * Math.PI)
-  const printing = reducedMotion ? 1 : THREE.MathUtils.smoothstep(progress, 0.18, printingEnd)
+  const printing = printProgress(progress, reducedMotion)
   return { rotationY: printing * Math.PI + assemblyMotion(progress, reducedMotion).base * Math.PI / 4, zoom: 1 + movement * 0.08 }
 }
 
@@ -382,7 +388,19 @@ function createPrintMaterial() {
 
 function StudioCamera({ progress, reducedMotion }: Pick<LampSceneProps, 'progress' | 'reducedMotion'>) {
   const camera = useThree((state) => state.camera)
+  const renderer = useThree((state) => state.gl)
   const size = useThree((state) => state.size)
+  const framing = useRef({ top: 72, bottom: 500, point: new THREE.Vector3() })
+  useLayoutEffect(() => {
+    const viewport = renderer.domElement.closest('.experience-sticky')
+    const narrative = viewport?.querySelector('.narrative')
+    const header = viewport?.querySelector('.site-header')
+    if (!viewport || !narrative || !header) return
+    const style = getComputedStyle(narrative)
+    const gap = parseFloat(style.getPropertyValue('--lamp-switch-gap'))
+    framing.current.top = header.getBoundingClientRect().bottom - viewport.getBoundingClientRect().top + 16
+    framing.current.bottom = parseFloat(style.top) - gap - 44 - 8
+  }, [renderer, size.width, size.height])
   useEffect(() => {
     if (!(camera instanceof THREE.PerspectiveCamera)) return
     const mobile = size.width <= 650
@@ -399,11 +417,31 @@ function StudioCamera({ progress, reducedMotion }: Pick<LampSceneProps, 'progres
     if (!(activeCamera instanceof THREE.PerspectiveCamera)) return
     const mobile = state.size.width <= 650
     const compact = mobile && state.size.height <= 700
-    const desktopOffset = !mobile && state.size.height <= 900 ? 0.06 + assemblyMotion(progress, reducedMotion).base * 0.03 : 0
-    const zoom = printMotion(progress, reducedMotion).zoom * (compact ? 1.05 : mobile ? 1.15 : 1.28)
-    activeCamera.zoom = zoom
+    const desktopOffset = !mobile && state.size.height <= 900 ? 0.06 : 0
+    const baseZoom = compact ? 1.05 : mobile ? 1.15 : 1.28
+    const baseOffset = state.size.height * ((compact ? 0.15 : 0.10) + desktopOffset)
+    activeCamera.zoom = baseZoom
+    activeCamera.setViewOffset(state.size.width, state.size.height, 0, baseOffset, state.size.width, state.size.height)
+    let top = Infinity
+    let bottom = -Infinity
+    const fit = framing.current
+    for (let sample = 0; sample < 32; sample++) {
+      const angle = sample / 32 * Math.PI * 2
+      for (const [height, radius] of [[0, 1.18], [modelHeight, 0.51]]) {
+        fit.point.set(Math.cos(angle) * radius, height, Math.sin(angle) * radius).project(activeCamera)
+        const vertical = (1 - fit.point.y) * state.size.height / 2
+        top = Math.min(top, vertical)
+        bottom = Math.max(bottom, vertical)
+      }
+    }
+    const scale = Math.min(1, Math.max(1, fit.bottom - fit.top) / (bottom - top))
+    const center = state.size.height / 2 - baseOffset
+    const fittedBottom = center + (bottom - center) * scale
+    const finalOffset = baseOffset + fittedBottom - fit.bottom
+    const assembly = reducedMotion ? Number(progress >= 0.9) : assemblyMotion(progress, false).base
+    activeCamera.zoom = printMotion(progress, reducedMotion).zoom * THREE.MathUtils.lerp(baseZoom, baseZoom * scale, assembly)
     activeCamera.setViewOffset(state.size.width, state.size.height,
-      0, state.size.height * ((compact ? 0.15 : 0.10) + desktopOffset),
+      0, THREE.MathUtils.lerp(baseOffset, finalOffset, assembly),
       state.size.width, state.size.height)
   })
   return null
@@ -535,7 +573,7 @@ function PrintedLamp({ progress, entrance = 1, lightOn, reducedMotion, onReady }
     uniforms.baseHeight.value = baseHeight(progress, reducedMotion, state.size.width)
     uniforms.shadeScale.value = shade.scale
     uniforms.shadeOffsetY.value = shade.offsetY
-    uniforms.printHeight.value = THREE.MathUtils.lerp(shadeRimHeight, modelHeight + 0.02, uniforms.printReveal.value)
+    uniforms.printHeight.value = THREE.MathUtils.lerp(shadeRimHeight, modelHeight, uniforms.printReveal.value)
     uniforms.lampLight.value = Number(lightOn)
     if (group.current) {
       group.current.scale.setScalar(shade.scale)

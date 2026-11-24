@@ -39,6 +39,7 @@
 - [x] Light the finished lamp automatically at the final chapter.
 - [x] Keep the final light checkpoint white with indigo text, retaining warm ground illumination and bloom.
 - [x] Add an accessible On/Off switch between the finished model and text; preserve automatic illumination by default and user choice while scrolling.
+- [x] Align Making/Vibe text height and place the toggle closer to the lamp than the copy, with fitted final-camera framing and no toggle-induced movement.
 - [x] Keep the guide attached to the first printed layers and fade it only once solid geometry is visible, with no empty handoff.
 - [x] Align the guide and print start to the actual shade rim, use stable visible-edge depth ordering, and shorten overlap to avoid a doubled rim.
 - [x] Remove cross-brace spans from rendered geometry and shadows without changing the base, outer shell, or source STL; retain the small attachment junctions.
@@ -46,6 +47,7 @@
 - [x] Reverse the lamp's 180-degree upright printing rotation, retaining the small zoom.
 - [x] Use a slower reversed 45-degree assembly turn, synchronized with shrink/drop and reversible without changing the final cable orientation.
 - [x] Start assembly immediately at shade-print completion with a modest initial velocity, removing the post-print hold.
+- [x] End layer reveal at the real model top and retain printing velocity into assembly, avoiding an early fully-visible shade and near-zero-motion interval.
 - [x] Start the base near the visible shade rim so initial movement is not concealed; verify early blue pixels on phone and desktop.
 - [x] Enlarge the resting outline on phone and desktop while preserving text clearance and the aligned print handoff.
 - [x] Remove the filament strand, tip, profile calculation and continuous loop while preserving layer-by-layer shader printing.
