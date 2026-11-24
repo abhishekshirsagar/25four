@@ -98,15 +98,18 @@ The repository and preview are public. Pushes to `main` build and deploy through
 
 ## Idle Motion
 
-At the resting vector stop, the original contour repeats a 90-degree turn every
-four seconds with a small scale pulse. Its bounds remain fitted between the header
-and copy. A white contour tracer with a subtle blue halo follows the sampled SVG
-path and wraps around the closed seam. The offsets and tracer fade into the aligned
-print handoff rather than replacing the moving mesh.
+At the resting vector stop, the original contour turns steadily through 90 degrees
+every six seconds with a 2% scale pulse. A fixed maximum envelope keeps it inside
+the header-to-copy band without angle-dependent resizing. A crisp 28px light line
+stays at the top while the vector moves through it; there is no travelling blurred
+tracer. The idle offsets and light fade into the aligned print handoff.
 
 At the finished-lamp stop, only the shade rotates slowly, nominally once every
 45 seconds. Vertex normals and depth geometry share the rotation; the base, bulb,
 and cable orientation stay fixed. The light switch is independent of rotation.
+Connected STL parts define the shade and complete base, including its upper stem.
+That triangle-consistent classification is shared by movement, normals, colour,
+and shadows; a vertex-height threshold cannot split or stretch the blue base.
 Both loops pause on navigation input, hidden pages, and off-screen positions, and
 remain disabled with reduced motion. Non-navigating touches allow the loop to resume.
 

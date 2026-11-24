@@ -147,6 +147,43 @@ function removeInternalSupports(geometry: THREE.BufferGeometry) {
   return geometry
 }
 
+function identifyLampParts(geometry: THREE.BufferGeometry) {
+  if (geometry.getAttribute('shadePart')) return geometry
+  const positions = geometry.getAttribute('position')
+  const parents = Uint32Array.from({ length: positions.count / 3 }, (_, index) => index)
+  const owners = new Map<string, number>()
+  const findRoot = (triangle: number) => {
+    let root = triangle
+    while (parents[root] !== root) root = parents[root]
+    while (parents[triangle] !== triangle) {
+      const next = parents[triangle]
+      parents[triangle] = root
+      triangle = next
+    }
+    return root
+  }
+  for (let vertex = 0; vertex < positions.count; vertex++) {
+    const key = `${Math.round(positions.getX(vertex) * 10000)},${Math.round(positions.getY(vertex) * 10000)},${Math.round(positions.getZ(vertex) * 10000)}`
+    const triangle = Math.floor(vertex / 3)
+    const owner = owners.get(key)
+    if (owner === undefined) owners.set(key, triangle)
+    else parents[findRoot(triangle)] = findRoot(owner)
+  }
+  const shadeRoots = new Set<number>()
+  for (let vertex = 0; vertex < positions.count; vertex++) {
+    if (positions.getY(vertex) > 2) shadeRoots.add(findRoot(Math.floor(vertex / 3)))
+  }
+  const parts = new Float32Array(positions.count)
+  for (let vertex = 0; vertex < positions.count; vertex += 3) {
+    const shade = Number(shadeRoots.has(findRoot(vertex / 3)))
+    parts[vertex] = shade
+    parts[vertex + 1] = shade
+    parts[vertex + 2] = shade
+  }
+  geometry.setAttribute('shadePart', new THREE.BufferAttribute(parts, 1))
+  return geometry
+}
+
 function rimGeometry(geometry: THREE.BufferGeometry) {
   const cached = rimOutlines.get(geometry)
   if (cached) return cached
@@ -199,7 +236,6 @@ function graphicGeometry(svg: SVGResult, model: THREE.BufferGeometry) {
   const positions = [0, 0, 0]
   const targetPositions = [0, 0, 0]
   const radii = [0]
-  const contour = [0]
   const coordinates = [0.5, 0.5]
   const indices: number[] = []
   for (let index = 0; index <= perimeter.length; index++) {
@@ -214,7 +250,6 @@ function graphicGeometry(svg: SVGResult, model: THREE.BufferGeometry) {
     positions.push(horizontal, 0, depth)
     targetPositions.push(Math.cos(angle + vectorTargetRotation) * radius, 0, Math.sin(angle + vectorTargetRotation) * radius)
     radii.push(1)
-    contour.push(index / perimeter.length)
     coordinates.push(point.x / 1924, point.y / 1924)
     if (index < perimeter.length) indices.push(0, index + 1, index + 2)
   }
@@ -222,7 +257,6 @@ function graphicGeometry(svg: SVGResult, model: THREE.BufferGeometry) {
   geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3))
   geometry.setAttribute('rimPosition', new THREE.Float32BufferAttribute(targetPositions, 3))
   geometry.setAttribute('edgeRadius', new THREE.Float32BufferAttribute(radii, 1))
-  geometry.setAttribute('contourProgress', new THREE.Float32BufferAttribute(contour, 1))
   geometry.setAttribute('graphicUv', new THREE.Float32BufferAttribute(coordinates, 2))
   geometry.setIndex(indices)
   geometry.computeBoundingSphere()
@@ -241,23 +275,21 @@ function createGraphicMaterial(pattern: THREE.Texture) {
       graphicEntrance: { value: 0 },
       graphicTilt: { value: 0 },
       graphicOpacity: { value: 1 },
-      graphicTrace: { value: 0 },
       graphicTraceStrength: { value: 0 },
+      graphicLightPoint: { value: new THREE.Vector2() },
+      graphicPixelRatio: { value: 1 },
       graphicInk: { value: new THREE.Color('#02144c') },
       motifTexture: { value: pattern },
     },
     vertexShader: `
       attribute vec3 rimPosition;
       attribute float edgeRadius;
-      attribute float contourProgress;
       attribute vec2 graphicUv;
       uniform float graphicTilt;
       varying float vEdgeRadius;
-      varying float vContourProgress;
       varying vec2 vGraphicUv;
       void main() {
         vEdgeRadius = edgeRadius;
-        vContourProgress = contourProgress;
         vGraphicUv = graphicUv;
         vec3 surface = mix(position, rimPosition, graphicTilt);
         gl_Position = projectionMatrix * modelViewMatrix * vec4(surface, 1.0);
@@ -265,12 +297,12 @@ function createGraphicMaterial(pattern: THREE.Texture) {
     fragmentShader: `
       uniform float graphicEntrance;
       uniform float graphicOpacity;
-      uniform float graphicTrace;
       uniform float graphicTraceStrength;
+      uniform vec2 graphicLightPoint;
+      uniform float graphicPixelRatio;
       uniform vec3 graphicInk;
       uniform sampler2D motifTexture;
       varying float vEdgeRadius;
-      varying float vContourProgress;
       varying vec2 vGraphicUv;
       float motifAt(vec2 tile) {
         vec2 motifUv = (tile - 0.5) / (50.1632 / 67.5) + 0.5;
@@ -286,15 +318,10 @@ function createGraphicMaterial(pattern: THREE.Texture) {
         vec3 displayInk = linearToOutputTexel(vec4(graphicInk, 1.0)).rgb;
         vec3 motifInk = mix(displayInk, vec3(1.0), motif);
         vec3 ink = sRGBTransferEOTF(vec4(motifInk, 1.0)).rgb;
-        float traceDistance = abs(fract(vContourProgress - graphicTrace + 0.5) - 0.5);
-        float traceHead = exp(-pow(traceDistance / 0.025, 2.0));
-        float traceTrail = (1.0 - smoothstep(0.0, 0.12, fract(graphicTrace - vContourProgress + 1.0))) * 0.45;
-        float tracing = max(traceHead, traceTrail) * graphicTraceStrength;
-        float halo = exp(-pow((1.0 - vEdgeRadius) / (edgeWidth * 3.0), 2.0)) * tracing;
-        float traceCore = smoothstep(1.0 - edgeWidth * 1.4, 1.0 - edgeWidth * 0.15, vEdgeRadius) * tracing;
-        ink = mix(ink, vec3(0.04, 0.15, 0.4), halo * 0.5);
-        ink = mix(ink, vec3(1.0), traceCore);
-        float opacity = max(max(outline, fill), halo * 0.4) * graphicOpacity;
+        vec2 lightDistance = abs(gl_FragCoord.xy - graphicLightPoint) / graphicPixelRatio;
+        float light = (1.0 - smoothstep(10.0, 16.0, lightDistance.x)) * (1.0 - smoothstep(1.0, 3.0, lightDistance.y)) * graphicTraceStrength;
+        ink = mix(ink, vec3(1.0), light * outline);
+        float opacity = max(outline, fill) * graphicOpacity;
         if (opacity <= 0.001) discard;
         gl_FragColor = vec4(ink, opacity);
         #include <colorspace_fragment>
@@ -326,21 +353,23 @@ function createPrintMaterial() {
   material.onBeforeCompile = (shader) => {
     Object.assign(shader.uniforms, uniforms)
     shader.vertexShader = shader.vertexShader
-      .replace('#include <common>', '#include <common>\nvarying vec3 vLampPosition;\nuniform float baseHeight;\nuniform float shadeScale;\nuniform float shadeOffsetY;\nuniform float shadeRotation;')
+      .replace('#include <common>', '#include <common>\nattribute float shadePart;\nvarying float vShadePart;\nvarying vec3 vLampPosition;\nuniform float baseHeight;\nuniform float shadeScale;\nuniform float shadeOffsetY;\nuniform float shadeRotation;')
       .replace('#include <beginnormal_vertex>', `#include <beginnormal_vertex>
-        if (position.y >= ${shadeStart}) {
+        if (shadePart > 0.5) {
           objectNormal.xz = mat2(cos(shadeRotation), -sin(shadeRotation), sin(shadeRotation), cos(shadeRotation)) * objectNormal.xz;
         }`)
       .replace('#include <begin_vertex>', `#include <begin_vertex>
         vLampPosition = position;
-        if (position.y >= ${shadeStart}) transformed.xz = mat2(cos(shadeRotation), -sin(shadeRotation), sin(shadeRotation), cos(shadeRotation)) * transformed.xz;
-        if (position.y < ${shadeStart}) {
+        vShadePart = shadePart;
+        if (shadePart > 0.5) transformed.xz = mat2(cos(shadeRotation), -sin(shadeRotation), sin(shadeRotation), cos(shadeRotation)) * transformed.xz;
+        if (shadePart < 0.5) {
           transformed /= shadeScale;
           transformed.y += (baseHeight - shadeOffsetY) / shadeScale;
         }`)
     shader.fragmentShader = shader.fragmentShader
       .replace('#include <common>', `#include <common>
         varying vec3 vLampPosition;
+        varying float vShadePart;
         uniform float printHeight;
         uniform float printReveal;
         uniform float baseReveal;
@@ -352,13 +381,13 @@ function createPrintMaterial() {
         uniform vec3 lampShade;
         uniform vec3 lampWarm;`)
       .replace('#include <clipping_planes_fragment>', `#include <clipping_planes_fragment>
-        if (vLampPosition.y >= ${shadeStart}) {
+        if (vShadePart > 0.5) {
           if (baseReveal < 0.999 && vLampPosition.y < ${internalColumnTop} && length(vLampPosition.xz) < ${internalColumnRadius}) discard;
           if (printReveal < 0.001 || vLampPosition.y > printHeight) discard;
         } else {
-          if (baseReveal < 0.001 || vLampPosition.y + baseHeight >= ${shadeStart} * shadeScale + shadeOffsetY) discard;
+          if (baseReveal < 0.001 || (baseReveal < 0.999 && vLampPosition.y + baseHeight >= ${shadeRimHeight} * shadeScale + shadeOffsetY)) discard;
         }
-        float shadeMask = smoothstep(${shadeStart - 0.025}, ${shadeStart + 0.025}, vLampPosition.y);
+        float shadeMask = vShadePart;
         float layerWave = 0.5 + 0.5 * cos(vLampPosition.y * 523.5988);
         float layerTint = mix(0.974, 1.0, layerWave);
         float printEdge = (1.0 - smoothstep(0.002, 0.022, printHeight - vLampPosition.y))
@@ -381,7 +410,7 @@ function createPrintMaterial() {
         outgoingLight = mix(outgoingLight, glowingSurface, lampLight * shadeMask);
         #include <opaque_fragment>`)
   }
-  material.customProgramCacheKey = () => '25four-assembly-v13'
+  material.customProgramCacheKey = () => '25four-assembly-v14'
 
   const depthMaterial = new THREE.MeshDepthMaterial({
     depthPacking: THREE.RGBADepthPacking,
@@ -396,26 +425,27 @@ function createPrintMaterial() {
     shader.uniforms.shadeOffsetY = uniforms.shadeOffsetY
     shader.uniforms.shadeRotation = uniforms.shadeRotation
     shader.vertexShader = shader.vertexShader
-      .replace('#include <common>', '#include <common>\nvarying float vPrintY;\nvarying float vPrintRadius;\nuniform float baseHeight;\nuniform float shadeScale;\nuniform float shadeOffsetY;\nuniform float shadeRotation;')
+      .replace('#include <common>', '#include <common>\nattribute float shadePart;\nvarying float vShadePart;\nvarying float vPrintY;\nvarying float vPrintRadius;\nuniform float baseHeight;\nuniform float shadeScale;\nuniform float shadeOffsetY;\nuniform float shadeRotation;')
       .replace('#include <begin_vertex>', `#include <begin_vertex>
         vPrintY = position.y;
+        vShadePart = shadePart;
         vPrintRadius = length(position.xz);
-        if (position.y >= ${shadeStart}) transformed.xz = mat2(cos(shadeRotation), -sin(shadeRotation), sin(shadeRotation), cos(shadeRotation)) * transformed.xz;
-        if (position.y < ${shadeStart}) {
+        if (shadePart > 0.5) transformed.xz = mat2(cos(shadeRotation), -sin(shadeRotation), sin(shadeRotation), cos(shadeRotation)) * transformed.xz;
+        if (shadePart < 0.5) {
           transformed /= shadeScale;
           transformed.y += (baseHeight - shadeOffsetY) / shadeScale;
         }`)
     shader.fragmentShader = shader.fragmentShader
-      .replace('#include <common>', '#include <common>\nvarying float vPrintY;\nvarying float vPrintRadius;\nuniform float printHeight;\nuniform float printReveal;\nuniform float baseReveal;\nuniform float baseHeight;\nuniform float shadeScale;\nuniform float shadeOffsetY;')
+      .replace('#include <common>', '#include <common>\nvarying float vShadePart;\nvarying float vPrintY;\nvarying float vPrintRadius;\nuniform float printHeight;\nuniform float printReveal;\nuniform float baseReveal;\nuniform float baseHeight;\nuniform float shadeScale;\nuniform float shadeOffsetY;')
       .replace('#include <clipping_planes_fragment>', `#include <clipping_planes_fragment>
-        if (vPrintY >= ${shadeStart}) {
+        if (vShadePart > 0.5) {
           if (baseReveal < 0.999 && vPrintY < ${internalColumnTop} && vPrintRadius < ${internalColumnRadius}) discard;
           if (printReveal < 0.001 || vPrintY > printHeight) discard;
         } else {
-          if (baseReveal < 0.001 || vPrintY + baseHeight >= ${shadeStart} * shadeScale + shadeOffsetY) discard;
+          if (baseReveal < 0.001 || (baseReveal < 0.999 && vPrintY + baseHeight >= ${shadeRimHeight} * shadeScale + shadeOffsetY)) discard;
         }`)
   }
-  depthMaterial.customProgramCacheKey = () => '25four-assembly-depth-v11'
+  depthMaterial.customProgramCacheKey = () => '25four-assembly-depth-v12'
   return { material, depthMaterial, uniforms }
 }
 
@@ -557,12 +587,19 @@ function PrintedLamp({ progress, entrance = 1, lightOn, reducedMotion, onReady, 
   const source = useLoader(STLLoader, lampUrl)
   const svg = useLoader(SVGLoader, `${assetBase}kaman-hero-solid.svg`)
   const motif = useLoader(THREE.TextureLoader, `${assetBase}kaman-motif-white.svg`)
-  const geometry = removeInternalSupports(normalizedGeometry(source))
+  const geometry = identifyLampParts(removeInternalSupports(normalizedGeometry(source)))
   const [surfaceGeometry] = useState(() => graphicGeometry(svg, geometry))
+  const [vectorExtent] = useState(() => {
+    const positions = surfaceGeometry.getAttribute('position')
+    let extent = 0
+    for (let vertex = 1; vertex < positions.count; vertex++) extent = Math.max(extent, Math.hypot(positions.getX(vertex), positions.getZ(vertex)))
+    return extent
+  })
   const group = useRef<THREE.Group>(null)
   const mesh = useRef<THREE.Mesh>(null)
   const outline = useRef<THREE.Group>(null)
   const surface = useRef<THREE.Mesh>(null)
+  const vectorLight = useRef<THREE.Mesh<THREE.PlaneGeometry, THREE.ShaderMaterial>>(null)
   const outlineMaterial = useRef<THREE.ShaderMaterial>(null)
   const pointLight = useRef<THREE.PointLight>(null)
   const spillLight = useRef<THREE.PointLight>(null)
@@ -617,10 +654,10 @@ function PrintedLamp({ progress, entrance = 1, lightOn, reducedMotion, onReady, 
     if (vectorResting) {
       const idle = vectorIdle.current
       idle.elapsed += Math.min(delta, 0.25)
-      const cycle = idle.elapsed / 4
+      const cycle = idle.elapsed / 6
       const phase = cycle % 1
-      idle.rotation = ((Math.floor(cycle) + THREE.MathUtils.smootherstep(phase, 0, 1)) * Math.PI / 2) % (Math.PI * 2)
-      idle.scale = 1 + Math.sin(phase * Math.PI * 2) * 0.04
+      idle.rotation = (cycle * Math.PI / 2) % (Math.PI * 2)
+      idle.scale = 1 + Math.sin(phase * Math.PI * 2) * 0.02
     } else if (reducedMotion || progress >= 0.18 || entrance < 0.05) {
       vectorIdle.current = { elapsed: 0, rotation: 0, scale: 1 }
     }
@@ -662,30 +699,19 @@ function PrintedLamp({ progress, entrance = 1, lightOn, reducedMotion, onReady, 
       const residualTurn = THREE.MathUtils.euclideanModulo(idle.rotation + Math.PI / 4, Math.PI / 2) - Math.PI / 4
       const idleBlend = THREE.MathUtils.smootherstep(entrance, 0.8, 1) * (1 - tilt)
       const idleTurn = vectorResting ? idle.rotation : residualTurn * idleBlend
-      const angle = vectorRestRotation + idleTurn
-      const positions = surfaceGeometry.getAttribute('position')
-      let extent = 0
-      let referenceExtent = 0
-      for (let vertex = 1; vertex < positions.count; vertex++) {
-        const horizontal = positions.getX(vertex)
-        const depth = positions.getZ(vertex)
-        extent = Math.max(extent, Math.abs(horizontal * Math.cos(angle) + depth * Math.sin(angle)), Math.abs(depth * Math.cos(angle) - horizontal * Math.sin(angle)))
-        referenceExtent = Math.max(referenceExtent, Math.abs((horizontal + depth) * Math.SQRT1_2), Math.abs((depth - horizontal) * Math.SQRT1_2))
-      }
       const limits = vectorFraming.current
       const projectedCenter = (1 - pose.projected.y) * state.size.height / 2
-      const shortDesktop = state.size.width > 650 && state.size.height <= 900
-      const targetCenter = shortDesktop ? (limits.top + limits.bottom) / 2 : projectedCenter
+      const targetCenter = (limits.top + limits.bottom) / 2
       const availableHalfHeight = Math.max(40, Math.min(targetCenter - limits.top, limits.bottom - targetCenter))
-      const fitWidth = availableHalfHeight * 4 / (referenceExtent * 1.04)
-      const flatWidth = Math.min(window.innerWidth * 0.78, 610, state.size.height * 0.74, fitWidth)
+      const fitWidth = availableHalfHeight * 4 / (vectorExtent * 1.02)
+      const flatWidth = Math.min(window.innerWidth * 0.92, 720, state.size.height * 0.9, fitWidth)
       const flatScale = flatWidth / (4 * pixelsPerUnit)
       const scale = THREE.MathUtils.lerp(startScale, THREE.MathUtils.lerp(flatScale, 1, tilt), entrance)
-      if (shortDesktop) {
+      if (Math.abs(targetCenter - projectedCenter) > 0.01) {
         pose.measure.set(pose.projected.x, 1 - targetCenter / state.size.height * 2, pose.projected.z).unproject(state.camera).sub(pose.center)
         outline.current.position.addScaledVector(pose.measure, entrance * (1 - tilt))
       }
-      const pulse = THREE.MathUtils.lerp(1, idle.scale * referenceExtent / Math.max(extent, 0.001), idleBlend)
+      const pulse = THREE.MathUtils.lerp(1, idle.scale, idleBlend)
       outline.current.scale.setScalar(scale * pulse)
       outline.current.quaternion.setFromEuler(graphicRotation(state.camera.quaternion, tilt, pose.orientation))
       pose.turn.setFromAxisAngle(pose.upright, vectorRestRotation * THREE.MathUtils.smootherstep(entrance, 0.08, 0.9) + vectorPrintRotation * tilt + idleTurn)
@@ -701,8 +727,19 @@ function PrintedLamp({ progress, entrance = 1, lightOn, reducedMotion, onReady, 
       graphic.graphicEntrance.value = entrance
       graphic.graphicTilt.value = tilt
       graphic.graphicOpacity.value = 1 - handoff
-      graphic.graphicTrace.value = (idle.elapsed / 6) % 1
       graphic.graphicTraceStrength.value = reducedMotion || idle.elapsed === 0 ? 0 : vectorResting ? 1 : idleBlend
+      const lightY = targetCenter - flatWidth * vectorExtent / 4
+      const pixelRatio = state.gl.getPixelRatio()
+      graphic.graphicLightPoint.value.set(state.size.width / 2 * pixelRatio, (state.size.height - lightY) * pixelRatio)
+      graphic.graphicPixelRatio.value = pixelRatio
+      if (vectorLight.current) {
+        const light = vectorLight.current
+        light.visible = graphic.graphicTraceStrength.value > 0.001
+        light.position.set(0, 1 - lightY / state.size.height * 2, pose.projected.z).unproject(state.camera)
+        light.quaternion.copy(state.camera.quaternion)
+        light.scale.set(28 / pixelsPerUnit, 4 / pixelsPerUnit, 1)
+        light.material.uniforms.lightOpacity.value = graphic.graphicTraceStrength.value
+      }
       graphic.graphicInk.value.copy(baseColor).lerp(shadeColor, handoff)
       outline.current.visible = graphic.graphicOpacity.value > 0.001 && !(reducedMotion && entrance >= 1)
     }
@@ -739,6 +776,12 @@ function PrintedLamp({ progress, entrance = 1, lightOn, reducedMotion, onReady, 
       <group ref={outline} position={[0, shadeRimHeight, 0]}>
         <mesh ref={surface} geometry={surfaceGeometry} dispose={null} renderOrder={2} />
       </group>
+      <mesh ref={vectorLight} visible={false} renderOrder={3}>
+        <planeGeometry args={[1, 1]} />
+        <shaderMaterial transparent depthWrite={false} depthTest={false} uniforms={{ lightOpacity: { value: 0 } }}
+          vertexShader="varying vec2 vLightUv; void main() { vLightUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }"
+          fragmentShader="varying vec2 vLightUv; uniform float lightOpacity; void main() { vec2 distanceFromCenter = abs(vLightUv - 0.5); float ends = 1.0 - smoothstep(0.42, 0.5, distanceFromCenter.x); float rim = 1.0 - smoothstep(0.3, 0.48, distanceFromCenter.y); float core = 1.0 - smoothstep(0.08, 0.22, distanceFromCenter.y); gl_FragColor = vec4(mix(vec3(0.32, 0.5, 0.78), vec3(1.0), core), ends * max(core, rim * 0.45) * lightOpacity); }" />
+      </mesh>
       <group ref={group} rotation={[0, lampStartRotation, 0]}>
         <mesh ref={mesh} geometry={geometry} visible={false} castShadow receiveShadow dispose={null} />
         <mesh position={[0, 2.05, 0]} visible={lightOn && entrance >= 1}>
