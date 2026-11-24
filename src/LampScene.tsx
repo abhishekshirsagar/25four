@@ -35,7 +35,13 @@ const lampStartRotation = Math.PI * 0.75 - 0.24
 const vectorRestRotation = Math.PI / 4
 const vectorPrintRotation = Math.PI / 4
 const vectorTargetRotation = vectorRestRotation + vectorPrintRotation
+const idleShadeSpeed = Math.PI * 2 / 45
+const idleLampProgress = 0.979
 const assetBase = import.meta.env.BASE_URL
+
+function vectorIsResting(progress: number, entrance: number, reducedMotion: boolean) {
+  return !reducedMotion && entrance >= 0.999 && progress >= 0.074 && progress <= 0.076
+}
 
 function printProgress(progress: number, reducedMotion: boolean) {
   if (reducedMotion) return 1
@@ -193,10 +199,11 @@ function graphicGeometry(svg: SVGResult, model: THREE.BufferGeometry) {
   const positions = [0, 0, 0]
   const targetPositions = [0, 0, 0]
   const radii = [0]
+  const contour = [0]
   const coordinates = [0.5, 0.5]
   const indices: number[] = []
-  for (let index = 0; index < perimeter.length; index++) {
-    const point = perimeter[index]
+  for (let index = 0; index <= perimeter.length; index++) {
+    const point = perimeter[index % perimeter.length]
     const horizontal = (point.x - 962) / 481
     const depth = (point.y - 962) / 481
     const angle = (Math.atan2(depth, horizontal) + Math.PI * 2) % (Math.PI * 2)
@@ -207,13 +214,15 @@ function graphicGeometry(svg: SVGResult, model: THREE.BufferGeometry) {
     positions.push(horizontal, 0, depth)
     targetPositions.push(Math.cos(angle + vectorTargetRotation) * radius, 0, Math.sin(angle + vectorTargetRotation) * radius)
     radii.push(1)
+    contour.push(index / perimeter.length)
     coordinates.push(point.x / 1924, point.y / 1924)
-    indices.push(0, index + 1, (index + 1) % perimeter.length + 1)
+    if (index < perimeter.length) indices.push(0, index + 1, index + 2)
   }
   const geometry = new THREE.BufferGeometry()
   geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3))
   geometry.setAttribute('rimPosition', new THREE.Float32BufferAttribute(targetPositions, 3))
   geometry.setAttribute('edgeRadius', new THREE.Float32BufferAttribute(radii, 1))
+  geometry.setAttribute('contourProgress', new THREE.Float32BufferAttribute(contour, 1))
   geometry.setAttribute('graphicUv', new THREE.Float32BufferAttribute(coordinates, 2))
   geometry.setIndex(indices)
   geometry.computeBoundingSphere()
@@ -232,18 +241,23 @@ function createGraphicMaterial(pattern: THREE.Texture) {
       graphicEntrance: { value: 0 },
       graphicTilt: { value: 0 },
       graphicOpacity: { value: 1 },
+      graphicTrace: { value: 0 },
+      graphicTraceStrength: { value: 0 },
       graphicInk: { value: new THREE.Color('#02144c') },
       motifTexture: { value: pattern },
     },
     vertexShader: `
       attribute vec3 rimPosition;
       attribute float edgeRadius;
+      attribute float contourProgress;
       attribute vec2 graphicUv;
       uniform float graphicTilt;
       varying float vEdgeRadius;
+      varying float vContourProgress;
       varying vec2 vGraphicUv;
       void main() {
         vEdgeRadius = edgeRadius;
+        vContourProgress = contourProgress;
         vGraphicUv = graphicUv;
         vec3 surface = mix(position, rimPosition, graphicTilt);
         gl_Position = projectionMatrix * modelViewMatrix * vec4(surface, 1.0);
@@ -251,9 +265,12 @@ function createGraphicMaterial(pattern: THREE.Texture) {
     fragmentShader: `
       uniform float graphicEntrance;
       uniform float graphicOpacity;
+      uniform float graphicTrace;
+      uniform float graphicTraceStrength;
       uniform vec3 graphicInk;
       uniform sampler2D motifTexture;
       varying float vEdgeRadius;
+      varying float vContourProgress;
       varying vec2 vGraphicUv;
       float motifAt(vec2 tile) {
         vec2 motifUv = (tile - 0.5) / (50.1632 / 67.5) + 0.5;
@@ -269,7 +286,15 @@ function createGraphicMaterial(pattern: THREE.Texture) {
         vec3 displayInk = linearToOutputTexel(vec4(graphicInk, 1.0)).rgb;
         vec3 motifInk = mix(displayInk, vec3(1.0), motif);
         vec3 ink = sRGBTransferEOTF(vec4(motifInk, 1.0)).rgb;
-        float opacity = max(outline, fill) * graphicOpacity;
+        float traceDistance = abs(fract(vContourProgress - graphicTrace + 0.5) - 0.5);
+        float traceHead = exp(-pow(traceDistance / 0.025, 2.0));
+        float traceTrail = (1.0 - smoothstep(0.0, 0.12, fract(graphicTrace - vContourProgress + 1.0))) * 0.45;
+        float tracing = max(traceHead, traceTrail) * graphicTraceStrength;
+        float halo = exp(-pow((1.0 - vEdgeRadius) / (edgeWidth * 3.0), 2.0)) * tracing;
+        float traceCore = smoothstep(1.0 - edgeWidth * 1.4, 1.0 - edgeWidth * 0.15, vEdgeRadius) * tracing;
+        ink = mix(ink, vec3(0.04, 0.15, 0.4), halo * 0.5);
+        ink = mix(ink, vec3(1.0), traceCore);
+        float opacity = max(max(outline, fill), halo * 0.4) * graphicOpacity;
         if (opacity <= 0.001) discard;
         gl_FragColor = vec4(ink, opacity);
         #include <colorspace_fragment>
@@ -285,6 +310,7 @@ function createPrintMaterial() {
     baseHeight: { value: shadeStart },
     shadeScale: { value: 1 },
     shadeOffsetY: { value: 0 },
+    shadeRotation: { value: 0 },
     lampLight: { value: 0 },
     lampBase: { value: baseColor },
     lampShade: { value: shadeColor },
@@ -300,9 +326,14 @@ function createPrintMaterial() {
   material.onBeforeCompile = (shader) => {
     Object.assign(shader.uniforms, uniforms)
     shader.vertexShader = shader.vertexShader
-      .replace('#include <common>', '#include <common>\nvarying vec3 vLampPosition;\nuniform float baseHeight;\nuniform float shadeScale;\nuniform float shadeOffsetY;')
+      .replace('#include <common>', '#include <common>\nvarying vec3 vLampPosition;\nuniform float baseHeight;\nuniform float shadeScale;\nuniform float shadeOffsetY;\nuniform float shadeRotation;')
+      .replace('#include <beginnormal_vertex>', `#include <beginnormal_vertex>
+        if (position.y >= ${shadeStart}) {
+          objectNormal.xz = mat2(cos(shadeRotation), -sin(shadeRotation), sin(shadeRotation), cos(shadeRotation)) * objectNormal.xz;
+        }`)
       .replace('#include <begin_vertex>', `#include <begin_vertex>
         vLampPosition = position;
+        if (position.y >= ${shadeStart}) transformed.xz = mat2(cos(shadeRotation), -sin(shadeRotation), sin(shadeRotation), cos(shadeRotation)) * transformed.xz;
         if (position.y < ${shadeStart}) {
           transformed /= shadeScale;
           transformed.y += (baseHeight - shadeOffsetY) / shadeScale;
@@ -350,7 +381,7 @@ function createPrintMaterial() {
         outgoingLight = mix(outgoingLight, glowingSurface, lampLight * shadeMask);
         #include <opaque_fragment>`)
   }
-  material.customProgramCacheKey = () => '25four-assembly-v12'
+  material.customProgramCacheKey = () => '25four-assembly-v13'
 
   const depthMaterial = new THREE.MeshDepthMaterial({
     depthPacking: THREE.RGBADepthPacking,
@@ -363,11 +394,13 @@ function createPrintMaterial() {
     shader.uniforms.baseHeight = uniforms.baseHeight
     shader.uniforms.shadeScale = uniforms.shadeScale
     shader.uniforms.shadeOffsetY = uniforms.shadeOffsetY
+    shader.uniforms.shadeRotation = uniforms.shadeRotation
     shader.vertexShader = shader.vertexShader
-      .replace('#include <common>', '#include <common>\nvarying float vPrintY;\nvarying float vPrintRadius;\nuniform float baseHeight;\nuniform float shadeScale;\nuniform float shadeOffsetY;')
+      .replace('#include <common>', '#include <common>\nvarying float vPrintY;\nvarying float vPrintRadius;\nuniform float baseHeight;\nuniform float shadeScale;\nuniform float shadeOffsetY;\nuniform float shadeRotation;')
       .replace('#include <begin_vertex>', `#include <begin_vertex>
         vPrintY = position.y;
         vPrintRadius = length(position.xz);
+        if (position.y >= ${shadeStart}) transformed.xz = mat2(cos(shadeRotation), -sin(shadeRotation), sin(shadeRotation), cos(shadeRotation)) * transformed.xz;
         if (position.y < ${shadeStart}) {
           transformed /= shadeScale;
           transformed.y += (baseHeight - shadeOffsetY) / shadeScale;
@@ -382,7 +415,7 @@ function createPrintMaterial() {
           if (baseReveal < 0.001 || vPrintY + baseHeight >= ${shadeStart} * shadeScale + shadeOffsetY) discard;
         }`)
   }
-  depthMaterial.customProgramCacheKey = () => '25four-assembly-depth-v10'
+  depthMaterial.customProgramCacheKey = () => '25four-assembly-depth-v11'
   return { material, depthMaterial, uniforms }
 }
 
@@ -518,8 +551,9 @@ function LampBloom() {
   return null
 }
 
-function PrintedLamp({ progress, entrance = 1, lightOn, reducedMotion, onReady }: LampSceneProps) {
+function PrintedLamp({ progress, entrance = 1, lightOn, reducedMotion, onReady, idleActive }: LampSceneProps & { idleActive: boolean }) {
   const getScene = useThree((state) => state.get)
+  const viewportSize = useThree((state) => state.size)
   const source = useLoader(STLLoader, lampUrl)
   const svg = useLoader(SVGLoader, `${assetBase}kaman-hero-solid.svg`)
   const motif = useLoader(THREE.TextureLoader, `${assetBase}kaman-motif-white.svg`)
@@ -533,6 +567,9 @@ function PrintedLamp({ progress, entrance = 1, lightOn, reducedMotion, onReady }
   const pointLight = useRef<THREE.PointLight>(null)
   const spillLight = useRef<THREE.PointLight>(null)
   const printing = useRef<ReturnType<typeof createPrintMaterial> | null>(null)
+  const idleRotation = useRef(0)
+  const vectorIdle = useRef({ elapsed: 0, rotation: 0, scale: 1 })
+  const vectorFraming = useRef({ top: 72, bottom: 500 })
   const warmup = useRef<Promise<unknown> | null>(null)
   const [shadersReady, setShadersReady] = useState(false)
   const [warmupError, setWarmupError] = useState<unknown>(null)
@@ -549,6 +586,15 @@ function PrintedLamp({ progress, entrance = 1, lightOn, reducedMotion, onReady }
     upright: new THREE.Vector3(0, 1, 0),
   }))
 
+  useLayoutEffect(() => {
+    const viewport = getScene().gl.domElement.closest('.experience-sticky')
+    const narrative = viewport?.querySelector('.narrative')
+    const header = viewport?.querySelector('.site-header')
+    if (!viewport || !narrative || !header) return
+    vectorFraming.current.top = header.getBoundingClientRect().bottom - viewport.getBoundingClientRect().top + 16
+    vectorFraming.current.bottom = parseFloat(getComputedStyle(narrative).top) - 24
+  }, [getScene, viewportSize.width, viewportSize.height])
+
   useEffect(() => {
     let cancelled = false
     const timer = window.setTimeout(() => {
@@ -564,9 +610,25 @@ function PrintedLamp({ progress, entrance = 1, lightOn, reducedMotion, onReady }
     return () => { cancelled = true; clearTimeout(timer) }
   }, [getScene, geometry])
 
-  useFrame((state) => {
+  useFrame((state, delta) => {
     if (!printing.current) return
     const { uniforms } = printing.current
+    const vectorResting = idleActive && shadersReady && vectorIsResting(progress, entrance, reducedMotion)
+    if (vectorResting) {
+      const idle = vectorIdle.current
+      idle.elapsed += Math.min(delta, 0.25)
+      const cycle = idle.elapsed / 4
+      const phase = cycle % 1
+      idle.rotation = ((Math.floor(cycle) + THREE.MathUtils.smootherstep(phase, 0, 1)) * Math.PI / 2) % (Math.PI * 2)
+      idle.scale = 1 + Math.sin(phase * Math.PI * 2) * 0.04
+    } else if (reducedMotion || progress >= 0.18 || entrance < 0.05) {
+      vectorIdle.current = { elapsed: 0, rotation: 0, scale: 1 }
+    }
+    const idling = idleActive && !reducedMotion && shadersReady && entrance >= 0.999 && progress >= idleLampProgress
+    if (idling) idleRotation.current = (idleRotation.current + Math.min(delta, 0.25) * idleShadeSpeed) % (Math.PI * 2)
+    else if (reducedMotion || progress < idleLampProgress) idleRotation.current = reducedMotion ? 0 : THREE.MathUtils.damp(idleRotation.current > Math.PI ? idleRotation.current - Math.PI * 2 : idleRotation.current, 0, 6, Math.min(delta, 0.25))
+    uniforms.shadeRotation.value = idleRotation.current
+    if (idling || Math.abs(idleRotation.current) > 0.0001) Object.assign(state.gl.shadowMap, { needsUpdate: true })
     const shade = shadePose(progress, reducedMotion, state.size.width)
     uniforms.printReveal.value = reveal.shade
     uniforms.baseReveal.value = reveal.base
@@ -596,12 +658,37 @@ function PrintedLamp({ progress, entrance = 1, lightOn, reducedMotion, onReady }
       pose.offset.set(startHorizontal * 2 - 1, 1 - startVertical * 2, pose.projected.z).unproject(state.camera).sub(pose.center)
       outline.current.position.copy(pose.center).addScaledVector(pose.offset, 1 - entrance)
       outline.current.position.y += Math.sin(tilt * Math.PI) * 0.08
-      const flatWidth = Math.min(window.innerWidth * 0.78, 610, state.size.height * 0.74)
+      const idle = vectorIdle.current
+      const residualTurn = THREE.MathUtils.euclideanModulo(idle.rotation + Math.PI / 4, Math.PI / 2) - Math.PI / 4
+      const idleBlend = THREE.MathUtils.smootherstep(entrance, 0.8, 1) * (1 - tilt)
+      const idleTurn = vectorResting ? idle.rotation : residualTurn * idleBlend
+      const angle = vectorRestRotation + idleTurn
+      const positions = surfaceGeometry.getAttribute('position')
+      let extent = 0
+      let referenceExtent = 0
+      for (let vertex = 1; vertex < positions.count; vertex++) {
+        const horizontal = positions.getX(vertex)
+        const depth = positions.getZ(vertex)
+        extent = Math.max(extent, Math.abs(horizontal * Math.cos(angle) + depth * Math.sin(angle)), Math.abs(depth * Math.cos(angle) - horizontal * Math.sin(angle)))
+        referenceExtent = Math.max(referenceExtent, Math.abs((horizontal + depth) * Math.SQRT1_2), Math.abs((depth - horizontal) * Math.SQRT1_2))
+      }
+      const limits = vectorFraming.current
+      const projectedCenter = (1 - pose.projected.y) * state.size.height / 2
+      const shortDesktop = state.size.width > 650 && state.size.height <= 900
+      const targetCenter = shortDesktop ? (limits.top + limits.bottom) / 2 : projectedCenter
+      const availableHalfHeight = Math.max(40, Math.min(targetCenter - limits.top, limits.bottom - targetCenter))
+      const fitWidth = availableHalfHeight * 4 / (referenceExtent * 1.04)
+      const flatWidth = Math.min(window.innerWidth * 0.78, 610, state.size.height * 0.74, fitWidth)
       const flatScale = flatWidth / (4 * pixelsPerUnit)
       const scale = THREE.MathUtils.lerp(startScale, THREE.MathUtils.lerp(flatScale, 1, tilt), entrance)
-      outline.current.scale.setScalar(scale)
+      if (shortDesktop) {
+        pose.measure.set(pose.projected.x, 1 - targetCenter / state.size.height * 2, pose.projected.z).unproject(state.camera).sub(pose.center)
+        outline.current.position.addScaledVector(pose.measure, entrance * (1 - tilt))
+      }
+      const pulse = THREE.MathUtils.lerp(1, idle.scale * referenceExtent / Math.max(extent, 0.001), idleBlend)
+      outline.current.scale.setScalar(scale * pulse)
       outline.current.quaternion.setFromEuler(graphicRotation(state.camera.quaternion, tilt, pose.orientation))
-      pose.turn.setFromAxisAngle(pose.upright, vectorRestRotation * THREE.MathUtils.smootherstep(entrance, 0.08, 0.9) + vectorPrintRotation * tilt)
+      pose.turn.setFromAxisAngle(pose.upright, vectorRestRotation * THREE.MathUtils.smootherstep(entrance, 0.08, 0.9) + vectorPrintRotation * tilt + idleTurn)
       outline.current.quaternion.multiply(pose.turn)
       if (!reducedMotion && progress >= 0.18) {
         const shade = shadePose(progress, false, state.size.width)
@@ -614,6 +701,8 @@ function PrintedLamp({ progress, entrance = 1, lightOn, reducedMotion, onReady }
       graphic.graphicEntrance.value = entrance
       graphic.graphicTilt.value = tilt
       graphic.graphicOpacity.value = 1 - handoff
+      graphic.graphicTrace.value = (idle.elapsed / 6) % 1
+      graphic.graphicTraceStrength.value = reducedMotion || idle.elapsed === 0 ? 0 : vectorResting ? 1 : idleBlend
       graphic.graphicInk.value.copy(baseColor).lerp(shadeColor, handoff)
       outline.current.visible = graphic.graphicOpacity.value > 0.001 && !(reducedMotion && entrance >= 1)
     }
@@ -738,7 +827,7 @@ function supportsWebGL() {
   }
 }
 
-function SceneFrames({ active, ready, progress, entrance, lightOn, reducedMotion }: LampSceneProps & { active: boolean; ready: boolean }) {
+function SceneFrames({ active, ready, progress, entrance, lightOn, reducedMotion, idleActive }: LampSceneProps & { active: boolean; ready: boolean; idleActive: boolean }) {
   const invalidate = useThree((state) => state.invalidate)
   const renderer = useThree((state) => state.gl)
   const previousFrame = useRef({ progress: NaN, entrance: NaN, ready: false, width: 0, height: 0 })
@@ -754,22 +843,64 @@ function SceneFrames({ active, ready, progress, entrance, lightOn, reducedMotion
     return () => { Object.assign(renderer.shadowMap, { autoUpdate: previous }) }
   }, [renderer])
   useEffect(() => {
-    if (!active) return
+    if (!active || !idleActive && (progress >= idleLampProgress || vectorIsResting(progress, entrance ?? 1, reducedMotion))) return
+    const idling = idleActive && ready && !reducedMotion && ((entrance ?? 1) >= 0.999 && progress >= idleLampProgress || vectorIsResting(progress, entrance ?? 1, reducedMotion))
     const settleUntil = performance.now() + (reducedMotion ? 0 : 1400)
     let timer = 0
+    let resumeTimer = 0
+    let paused = false
     const draw = () => {
+      if (paused) return
       invalidate()
-      if (performance.now() < settleUntil) timer = window.setTimeout(draw, 1000 / 30)
+      if (idling || performance.now() < settleUntil) timer = window.setTimeout(draw, 1000 / (idling ? 24 : 30))
     }
+    const pauseIdle = () => {
+      if (!idling) return
+      paused = true
+      clearTimeout(timer)
+      clearTimeout(resumeTimer)
+      resumeTimer = window.setTimeout(() => {
+        const section = renderer.domElement.closest('.experience')
+        if (!(section instanceof HTMLElement) || document.hidden) return
+        const origin = section.getBoundingClientRect().top + scrollY
+        const span = section.offsetHeight - innerHeight
+        const checkpoint = progress >= idleLampProgress ? 0.98 : 0.075
+        if (Math.abs(scrollY - origin - span * checkpoint) > 2) return
+        paused = false
+        draw()
+      }, 800)
+    }
+    const pointerNavigation = (event: PointerEvent) => {
+      if (event.target instanceof Element && event.target.closest('.chapter-nav,.discover-link,.header-link,.wordmark')) pauseIdle()
+    }
+    const wheelNavigation = (event: WheelEvent) => { if (!event.ctrlKey && Math.abs(event.deltaY) >= 0.5) pauseIdle() }
+    const keyboardNavigation = (event: KeyboardEvent) => {
+      if (!['ArrowUp', 'ArrowDown', 'PageUp', 'PageDown', 'Home', 'End', ' ', 'Enter'].includes(event.key)) return
+      if ([' ', 'Enter'].includes(event.key) && event.target instanceof Element && event.target.closest('[role="switch"]')) return
+      pauseIdle()
+    }
+    const touchNavigation = (event: TouchEvent) => { if (!(event.target instanceof Element && event.target.closest('[role="switch"]'))) pauseIdle() }
+    window.addEventListener('pointerdown', pointerNavigation, true)
+    window.addEventListener('wheel', wheelNavigation, { passive: true, capture: true })
+    window.addEventListener('keydown', keyboardNavigation, true)
+    window.addEventListener('touchstart', touchNavigation, { passive: true, capture: true })
     draw()
-    return () => clearTimeout(timer)
-  }, [active, ready, progress, entrance, lightOn, reducedMotion, renderer, invalidate])
+    return () => {
+      clearTimeout(timer)
+      clearTimeout(resumeTimer)
+      window.removeEventListener('pointerdown', pointerNavigation, true)
+      window.removeEventListener('wheel', wheelNavigation, true)
+      window.removeEventListener('keydown', keyboardNavigation, true)
+      window.removeEventListener('touchstart', touchNavigation, true)
+    }
+  }, [active, ready, progress, entrance, lightOn, reducedMotion, idleActive, renderer, invalidate])
   return null
 }
 
 export default memo(function LampScene({ progress, entrance = 1, lightOn, reducedMotion, onReady }: LampSceneProps) {
   const container = useRef<HTMLDivElement>(null)
   const [active, setActive] = useState(() => !document.hidden)
+  const [idleActive, setIdleActive] = useState(false)
   const [ready, setReady] = useState(false)
   const [webglAvailable, setWebglAvailable] = useState(supportsWebGL)
   const [unavailable, setUnavailable] = useState(!webglAvailable)
@@ -780,12 +911,23 @@ export default memo(function LampScene({ progress, entrance = 1, lightOn, reduce
   useEffect(() => {
     if (!container.current) return
     let visible = true
-    const update = () => setActive(visible && !document.hidden)
+    const update = () => {
+      setActive(visible && !document.hidden)
+      const section = container.current?.closest('.experience')
+      if (!(section instanceof HTMLElement)) return
+      const origin = section.getBoundingClientRect().top + scrollY
+      const span = Math.max(1, section.offsetHeight - innerHeight)
+      const atVector = Math.abs(scrollY - origin - span * 0.075) <= 2
+      const atLamp = Math.abs(scrollY - origin - span * 0.98) <= 2
+      setIdleActive(visible && !document.hidden && (atVector || atLamp))
+    }
     const observer = new IntersectionObserver(([entry]) => { visible = entry.isIntersecting; update() })
     observer.observe(container.current)
     document.addEventListener('visibilitychange', update)
+    window.addEventListener('scroll', update, { passive: true })
+    window.addEventListener('resize', update)
     update()
-    return () => { observer.disconnect(); document.removeEventListener('visibilitychange', update) }
+    return () => { observer.disconnect(); document.removeEventListener('visibilitychange', update); window.removeEventListener('scroll', update); window.removeEventListener('resize', update) }
   }, [])
 
   useEffect(() => {
@@ -797,6 +939,7 @@ export default memo(function LampScene({ progress, entrance = 1, lightOn, reduce
   return (
     <div ref={container} data-lamp-progress={safeProgress.toFixed(4)} data-lamp-loaded={ready}
       data-render-active={active}
+      data-idle-active={idleActive}
       data-outline-owner="single-svg-surface" data-entrance={entrance.toFixed(4)}
       data-graphic-fill={(1 - THREE.MathUtils.smoothstep(entrance, 0.48, 0.94)).toFixed(4)}
       data-lamp-state={unavailable ? 'unavailable' : ready ? 'ready' : 'loading'}
@@ -823,10 +966,10 @@ export default memo(function LampScene({ progress, entrance = 1, lightOn, reduce
             }, { once: true })
           }}>
           <StudioCamera progress={safeProgress} reducedMotion={reducedMotion} />
-          <SceneFrames active={active} ready={ready} progress={safeProgress} entrance={entrance} lightOn={lightOn} reducedMotion={reducedMotion} />
+          <SceneFrames active={active} ready={ready} progress={safeProgress} entrance={entrance} lightOn={lightOn} reducedMotion={reducedMotion} idleActive={idleActive} />
           <StudioLights lightOn={lightOn} reducedMotion={reducedMotion} />
           <Suspense fallback={null}>
-            <PrintedLamp progress={safeProgress} entrance={entrance} lightOn={lightOn} reducedMotion={reducedMotion} onReady={() => setReady(true)} />
+            <PrintedLamp progress={safeProgress} entrance={entrance} lightOn={lightOn} reducedMotion={reducedMotion} idleActive={idleActive} onReady={() => setReady(true)} />
           </Suspense>
           <Ground progress={safeProgress} reducedMotion={reducedMotion} lightOn={lightOn} />
           {lightOn && <LampBloom />}

@@ -50,6 +50,8 @@
 - [x] End layer reveal at the real model top and retain printing velocity into assembly, avoiding an early fully-visible shade and near-zero-motion interval.
 - [x] Start the base near the visible shade rim so initial movement is not concealed; verify early blue pixels on phone and desktop.
 - [x] Enlarge the resting outline on phone and desktop while preserving text clearance and the aligned print handoff.
+- [x] Add a bounded repeating vector quarter-turn/scale pulse and white contour tracer, fading into the aligned print handoff.
+- [x] Add slow shade-only rotation at the finished stop, with matching normals/shadows, a stationary base, and reduced-motion/visibility/navigation guards.
 - [x] Remove the filament strand, tip, profile calculation and continuous loop while preserving layer-by-layer shader printing.
 - [x] Increase transmission through the middle/lower shade surfaces without increasing bulb intensity or the floor pool.
 - [x] Enlarge the shade-only pose, then start the base drop and shade shrink/lift simultaneously on one easing curve; keep the base independently floor-aligned.
