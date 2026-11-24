@@ -34,6 +34,7 @@ const baseColor = new THREE.Color('#02144c')
 const shadeColor = new THREE.Color('#f6f5f0')
 const warmColor = new THREE.Color('#ffbf75')
 const lampStartRotation = Math.PI - 0.24
+const assetBase = import.meta.env.BASE_URL
 
 function assemblyMotion(progress: number, reducedMotion: boolean) {
   if (reducedMotion) return { base: 1, shade: 1 }
@@ -540,8 +541,8 @@ function LampBloom() {
 function PrintedLamp({ progress, entrance = 1, lightOn, reducedMotion, onReady }: LampSceneProps) {
   const getScene = useThree((state) => state.get)
   const source = useLoader(STLLoader, lampUrl)
-  const svg = useLoader(SVGLoader, '/kaman-hero-solid.svg')
-  const motif = useLoader(THREE.TextureLoader, '/kaman-motif-white.svg')
+  const svg = useLoader(SVGLoader, `${assetBase}kaman-hero-solid.svg`)
+  const motif = useLoader(THREE.TextureLoader, `${assetBase}kaman-motif-white.svg`)
   const geometry = normalizedGeometry(source)
   const [surfaceGeometry] = useState(() => graphicGeometry(svg, geometry))
   const group = useRef<THREE.Group>(null)

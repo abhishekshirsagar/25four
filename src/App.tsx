@@ -7,6 +7,7 @@ const LampScene = lazy(() => import('./LampScene'))
 const scrollCheckpoints = [0, 0.075, 0.7, 0.98]
 const openingTransitionMs = 2400
 const detailsTransitionMs = 650
+const assetBase = import.meta.env.BASE_URL
 
 function easeOpening(value: number) {
   return value ** 3 * (value * (value * 6 - 15) + 10)
@@ -23,7 +24,7 @@ const chapters = [
 ]
 
 function Wordmark({ onHome }: { onHome?: () => void }) {
-  return <a className="wordmark" href="#home" onClick={(event) => { if (onHome) { event.preventDefault(); onHome() } }} aria-label="25.four home"><i className="wordmark-symbol" aria-hidden="true"><img src="/studio-mark.svg" alt="" /></i><span>25.<b>four</b></span></a>
+  return <a className="wordmark" href="#home" onClick={(event) => { if (onHome) { event.preventDefault(); onHome() } }} aria-label="25.four home"><i className="wordmark-symbol" aria-hidden="true"><img src={`${assetBase}studio-mark.svg`} alt="" /></i><span>25.<b>four</b></span></a>
 }
 
 function HeroArtwork({ ready }: { ready: boolean }) {
@@ -32,11 +33,11 @@ function HeroArtwork({ ready }: { ready: boolean }) {
       <svg className="hero-motifs" viewBox="0 0 1924 1924" style={{ opacity: 0.10 }}>
         <defs>
           <pattern id="bagru-textile" width="67.5" height="67.5" patternUnits="userSpaceOnUse">
-            <image href="/kaman-motif-white.svg" x="8.6684" y="8.6684" width="50.1632" height="50.1632" />
-            <image href="/kaman-motif-white.svg" x="42.4184" y="42.4184" width="50.1632" height="50.1632" />
-            <image href="/kaman-motif-white.svg" x="-25.0816" y="42.4184" width="50.1632" height="50.1632" />
-            <image href="/kaman-motif-white.svg" x="42.4184" y="-25.0816" width="50.1632" height="50.1632" />
-            <image href="/kaman-motif-white.svg" x="-25.0816" y="-25.0816" width="50.1632" height="50.1632" />
+            <image href={`${assetBase}kaman-motif-white.svg`} x="8.6684" y="8.6684" width="50.1632" height="50.1632" />
+            <image href={`${assetBase}kaman-motif-white.svg`} x="42.4184" y="42.4184" width="50.1632" height="50.1632" />
+            <image href={`${assetBase}kaman-motif-white.svg`} x="-25.0816" y="42.4184" width="50.1632" height="50.1632" />
+            <image href={`${assetBase}kaman-motif-white.svg`} x="42.4184" y="-25.0816" width="50.1632" height="50.1632" />
+            <image href={`${assetBase}kaman-motif-white.svg`} x="-25.0816" y="-25.0816" width="50.1632" height="50.1632" />
           </pattern>
         </defs>
         <rect width="1924" height="1924" fill="url(#bagru-textile)" />
@@ -280,7 +281,7 @@ function App() {
 
         <section className="details-section" id="details" aria-labelledby="details-title">
           <div className="details-inner">
-          <div className="details-heading"><span className="eyebrow">SPECIFICATIONS / 25F-KAM-01</span><h2 id="details-title">Kaman,<br />in detail.</h2><div className="technical-drawing"><img src="/lamp-drawing.svg" alt="Kaman table lamp, in outline" /></div></div>
+          <div className="details-heading"><span className="eyebrow">SPECIFICATIONS / 25F-KAM-01</span><h2 id="details-title">Kaman,<br />in detail.</h2><div className="technical-drawing"><img src={`${assetBase}lamp-drawing.svg`} alt="Kaman table lamp, in outline" /></div></div>
           <div className="details-content"><p>160 mm tall, with four arches all the way around.</p><dl><div><dt>Edition</dt><dd>Bagru</dd></div><div><dt>Dimensions</dt><dd>160 (H) × 200 (W) mm</dd></div><div><dt>Material</dt><dd>Polylactic Acid (PLA)</dd></div><div><dt>Production</dt><dd>3D printed</dd></div><div><dt>Light colour</dt><dd>3000K / warm white</dd></div><div><dt>Power supply</dt><dd>220–240V AC, 50Hz</dd></div></dl><a className="return-link" href="#making" onClick={(event) => { event.preventDefault(); goToChapter(2) }}>See Kaman lit <ArrowUpRight size={20} /></a></div>
           </div>
         </section>

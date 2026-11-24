@@ -48,6 +48,14 @@ The landing and story share one sticky viewport and one persistent Three.js canv
 
 The 3D scene is lazy-loaded separately. Models, fonts, and graphic motifs are local; no remote image, HDR, or model service is required. Reduced-motion preferences disable autoplay, rotation, zoom, and moving filament; entering the story displays the complete, centered, stationary lamp. A static illustration with retry is available if WebGL fails.
 
+## Hosting
+
+Public preview: https://abhishekshirsagar.github.io/25four/
+
+The repository and preview are public. Pushes to `main` build and deploy through
+[GitHub Actions](.github/workflows/pages.yml). The workflow sets
+`VITE_BASE_PATH=/25four/`; local development keeps the default `/` base path.
+
 ## Runtime Performance
 
 - The canvas renders on demand rather than continuously. After lighting settles, the completed lamp stops requesting frames.
