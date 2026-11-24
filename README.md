@@ -94,12 +94,16 @@ repeated radially to make the shade; the Bagru edition's indigo and white are
 inspired by traditional Bagru block printing. The lamp itself is 3D printed in
 PLA. The page makes no claim that it is hand-block-printed or traditionally handmade.
 
-The second writing pass moves from an arch at table-lamp scale, to curves built
-layer by layer, to an unhurried evening. The opening is intentionally brief;
-body text supplies the architectural, manufacturing, and Bagru context.
+The current writing pass adds gentle wit and everyday Indian home life without
+turning provenance into a costume: no suitcase, a grand entrance on a side table,
+and chai gone cold while the conversation continues. Headlines carry the
+personality; body text keeps the architectural, manufacturing, and Bagru facts.
 Specifications remain factual, and utility labels describe their actions.
 
 References read for approach, not copied wording:
+- [Nicobar](https://www.nicobar.com/): warm occasion-led language and understated social asides.
+- [The Burlap People](https://www.theburlappeople.com/): personable product names and a friendly, unceremonious voice; its handmade and sustainability claims are not transferred to this lamp.
+- [ORVI](https://www.orvi.com/): discussing traditional influences alongside contemporary processes without confusing inspiration with manufacture.
 - [Gantri Maskor](https://www.gantri.com/products/10036/maskor-table-light-by-muka-design-lab): connect a distinctive form and its origin to how light feels at home.
 - [Audo Copenhagen](https://audocph.com/): domestic context and a restrained editorial tone.
 - [Copywriting skill](https://skills.sh/coreyhaines31/marketingskills/copywriting) and [copy-editing skill](https://skills.sh/coreyhaines31/marketingskills/copy-editing): specificity, honest claims, voice consistency, and focused editing passes. Guidance was read; no skill package was installed.

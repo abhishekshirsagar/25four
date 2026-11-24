@@ -57,6 +57,7 @@
 - [x] Use source-provided product copy and technical specifications.
 - [x] Rewrite the hero, three chapters, specifications introduction, footer, metadata, and utility copy from the original product facts.
 - [x] Make a second, more direct copy pass while preserving the original Rajasthani-arch and Bagru context.
+- [x] Add an Indian-reference-led copy pass with gentle wit, everyday chai/conversation context, factual supporting text, and checked phone typography.
 - [x] Add 48 px desktop / 36 px phone spacing between opening subtext and title.
 - [x] Read lighting-brand references and copywriting/editing guidance; document sources and keep the wording original.
 - [x] Distinguish Bagru block-printing inspiration from the lamp's 3D-printed PLA construction.

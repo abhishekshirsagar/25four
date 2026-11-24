@@ -18,9 +18,9 @@ function easePrinting(value: number) {
 }
 
 const chapters = [
-  { label: 'ARCHITECTURE', title: <>An arch,<br />on a smaller scale.</>, body: 'Kaman takes its name from Rajasthani arches. Four identical arch forms meet around a single centre to make its shade.' },
-  { label: '3D PRINTING', title: <>Every curve,<br />one layer at a time.</>, body: '3D printed in PLA, the shade grows from its broad edge to the opening above. Fine layers build four curves into one form.' },
-  { label: 'WARM LIGHT', title: <>For evenings<br />with nowhere to be.</>, body: 'Indigo and white take their cue from traditional Bagru block printing. Warm 3000K light fills the shade and falls in a soft pool below.' },
+  { label: 'ARCHITECTURE', title: <>A grand entrance.<br />On a side table.</>, body: 'Named for the arches of Rajasthani architecture, Kaman repeats four identical arch forms around one centre to make its shade.' },
+  { label: '3D PRINTING', title: <>A little patience.<br />A lot of layers.</>, body: 'The shade is 3D printed in PLA, from its broad edge to the opening above. One fine layer after another, until four curves become one form.' },
+  { label: 'WARM LIGHT', title: <>Chai's gone cold.<br />Conversation hasn't.</>, body: 'Indigo and white nod to traditional Bagru block printing. Warm 3000K light for the book, the chai, and one more story.' },
 ]
 
 function Wordmark({ onHome }: { onHome?: () => void }) {
@@ -227,7 +227,7 @@ function App() {
               <HeroArtwork ready={modelReady} />
               <div className="hero-type" style={{ opacity: heroOpacity }}>
                 <div className="hero-lockup">
-                  <p className="hero-poem"><span>A little Rajasthan.</span><span>A light to linger by.</span></p>
+                  <p className="hero-poem"><span>A little Rajasthan.</span><span>No suitcase required.</span></p>
                   <h1 className="product-title" id="product-title"><span>KAMAN</span><strong>BAGRU</strong></h1>
                 </div>
                 <div className="landing-bottom"><a className="discover-link" href="#making" title="Discover Kaman" aria-label="Discover Kaman" onClick={(event) => { event.preventDefault(); goToChapter(0) }}><ArrowDown size={22} /></a></div>
@@ -252,8 +252,8 @@ function App() {
 
         <section className="details-section" id="details" aria-labelledby="details-title">
           <div className="details-inner">
-          <div className="details-heading"><span className="eyebrow">SPECIFICATIONS / 25F-KAM-01</span><h2 id="details-title">Kaman,<br />in detail.</h2><div className="technical-drawing"><img src={`${assetBase}lamp-drawing.svg`} alt="Kaman table lamp, in outline" /></div></div>
-          <div className="details-content"><p>160 mm tall, with four arches all the way around.</p><dl><div><dt>Edition</dt><dd>Bagru</dd></div><div><dt>Dimensions</dt><dd>160 (H) × 200 (W) mm</dd></div><div><dt>Material</dt><dd>Polylactic Acid (PLA)</dd></div><div><dt>Production</dt><dd>3D printed</dd></div><div><dt>Light colour</dt><dd>3000K / warm white</dd></div><div><dt>Power supply</dt><dd>220–240V AC, 50Hz</dd></div></dl><a className="return-link" href="#making" onClick={(event) => { event.preventDefault(); goToChapter(2) }}>See Kaman lit <ArrowUpRight size={20} /></a></div>
+          <div className="details-heading"><span className="eyebrow">SPECIFICATIONS / 25F-KAM-01</span><h2 id="details-title">The finer<br />print.</h2><div className="technical-drawing"><img src={`${assetBase}lamp-drawing.svg`} alt="Kaman table lamp, in outline" /></div></div>
+          <div className="details-content"><p>160 mm tall. 200 mm wide. Four arches, all the way around.</p><dl><div><dt>Edition</dt><dd>Bagru</dd></div><div><dt>Dimensions</dt><dd>160 (H) × 200 (W) mm</dd></div><div><dt>Material</dt><dd>Polylactic Acid (PLA)</dd></div><div><dt>Production</dt><dd>3D printed</dd></div><div><dt>Light colour</dt><dd>3000K / warm white</dd></div><div><dt>Power supply</dt><dd>220–240V AC, 50Hz</dd></div></dl><a className="return-link" href="#making" onClick={(event) => { event.preventDefault(); goToChapter(2) }}>See Kaman lit <ArrowUpRight size={20} /></a></div>
           </div>
         </section>
       </main>
