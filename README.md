@@ -64,9 +64,10 @@ Making. "See Kaman lit" explicitly restores On. The switch supports keyboard
 activation and uses a 56 x 44px touch target; compact layouts preserve clearance.
 
 Making and Vibe share the same text anchor and typography at each viewport size.
-The switch sits closer to the lamp, with a larger gap to the copy. Final camera
-framing fits the model between the header and switch, interpolating during
-assembly; toggling illumination does not change that framing or scroll position.
+The switch is centered between the lamp's lower edge and the heading. Its spacing
+is independent of final camera framing, so adjusting it does not move the lamp
+or copy. Framing interpolates during assembly; toggling illumination does not
+change that framing or scroll position.
 
 The vector's tilt and 45-degree turn use their own relaxed 1.2-second segment;
 the following print journey retains its established easing and proportional pace.

@@ -397,7 +397,7 @@ function StudioCamera({ progress, reducedMotion }: Pick<LampSceneProps, 'progres
     const header = viewport?.querySelector('.site-header')
     if (!viewport || !narrative || !header) return
     const style = getComputedStyle(narrative)
-    const gap = parseFloat(style.getPropertyValue('--lamp-switch-gap'))
+    const gap = parseFloat(style.getPropertyValue('--lamp-framing-gap'))
     framing.current.top = header.getBoundingClientRect().bottom - viewport.getBoundingClientRect().top + 16
     framing.current.bottom = parseFloat(style.top) - gap - 44 - 8
   }, [renderer, size.width, size.height])
