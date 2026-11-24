@@ -1,0 +1,41 @@
+@import '@fontsource-variable/unbounded';
+@import '@fontsource-variable/space-grotesk';
+@import '@fontsource-variable/platypi';
+
+:root {
+  font-family: 'Space Grotesk Variable', sans-serif;
+  color: #02144c;
+  background: #fff;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  font-weight: 400;
+  font-size: 15px;
+  line-height: 1.6;
+  letter-spacing: 0;
+  color-scheme: light;
+  --paper: #fff;
+  --ink: #02144c;
+  --muted: #72798f;
+  --line: #dce0eb;
+  --display: 'Unbounded Variable', sans-serif;
+  --serif: 'Platypi Variable', serif;
+}
+
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; scroll-padding-top: 0; }
+body { margin: 0; min-width: 320px; }
+button, a, input { font: inherit; -webkit-tap-highlight-color: transparent; }
+button, a { touch-action: manipulation; }
+button { color: inherit; cursor: pointer; border: 0; background: none; }
+a { color: inherit; text-decoration: none; }
+button:focus-visible, a:focus-visible { outline: 2px solid var(--ink); outline-offset: 6px; }
+::selection { background: #02144c; color: white; }
+h1, h2, p { margin: 0; }
+svg { flex-shrink: 0; }
+
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+}
