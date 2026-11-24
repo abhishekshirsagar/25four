@@ -82,7 +82,7 @@
   .product-title strong { font-size: 76px; }
   .landing-bottom { bottom: 5%; }
   .experience { height: 380svh; }
-  .narrative { top: 64%; width: calc(100% - 40px); }
+  .narrative { top: 63%; width: calc(100% - 40px); }
   .chapter-label { margin-bottom: 15px; font-size: 8px; gap: 15px; }
   .chapter-copy h2 { font-size: 30px; line-height: 1.25; }
   .chapter-copy p { font-size: 15px; }
@@ -103,7 +103,7 @@
 @media (max-width: 370px) {
   .product-title strong { font-size: 60px; }
   .product-title span { font-size: 28px; }
-  .narrative { top: 64%; }
+  .narrative { top: 63%; }
   .chapter-copy h2 { font-size: 28px; }
   .chapter-copy p { font-size: 14px; line-height: 1.5; }
   .details-heading h2 { font-size: 27px; }
@@ -113,8 +113,8 @@
   .hero-poem { margin-bottom: 24px; font-size: 14px; line-height: 1.6; }
   .landing-bottom { bottom: 3%; }
   .story-bottom { bottom: 3%; }
-  .narrative { top: 58%; }
+  .narrative { top: 56%; }
   .chapter-copy h2 { font-size: 26px; line-height: 1.2; }
-  .chapter-copy p { margin-top: 10px; font-size: 14px; line-height: 1.45; }
+  .chapter-copy p { margin-top: 10px; font-size: 13px; line-height: 1.45; }
   .chapter-nav { margin-top: 8px; }
 }

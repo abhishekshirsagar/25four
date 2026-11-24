@@ -25,9 +25,10 @@
 - [x] Keep the canvas viewport stable instead of resizing it during the transition.
 
 ## Scroll And Light
-- [x] Build three concise centered story chapters with the model above the text.
+- [x] Use the selected Making and Vibe copy in two centered story chapters with the model above the text.
 - [x] Add eased wheel, touch, keyboard, and chapter-control scroll checkpoints, including reverse travel.
-- [x] Use exactly three story stops: outline, completed shade, and completed illuminated lamp with final copy.
+- [x] Use exactly two story stops: Making at the outline and Vibe at the illuminated lamp, with no completed-shade checkpoint.
+- [x] Mirror easing curves for upward travel so reverse motion retraces the forward timing.
 - [x] Run printing travel at half its previous speed while keeping opening and Back to top responsive.
 - [x] Tilt the flat contour into the shade's actual 3D bottom rim.
 - [x] Print the shade upward before revealing any of the blue base.
@@ -40,12 +41,12 @@
 - [x] Rotate the lamp 180 degrees around its upright axis during printing, with a small zoom.
 - [x] Add another 180-degree upright rotation during assembly, synchronized with shrink/drop and reversible without changing the final cable orientation.
 - [x] Trace the active layer with a model-profiled filament and finish the strand at completion.
-- [x] Keep a white filament looping around the shade's top at the second stop; remove filament entirely during base assembly.
+- [x] Keep a white filament tracing the printed shade; remove filament entirely during base assembly.
 - [x] Enlarge the shade-only pose, then start the base drop and shade shrink/lift simultaneously on one easing curve; keep the base independently floor-aligned.
 - [x] Trigger brighter illumination only when the base reaches the floor.
 - [x] Spawn the blue base inside the shade, conceal its hidden portion, and accelerate it straight down without fading in; light the lamp and floor immediately at contact.
 - [x] Introduce a broad faint shadow ahead of assembly, then tighten it gradually with same-frame shadow updates.
-- [x] Center all three story stages, with the graphic or lamp above the text.
+- [x] Center both story sections, with the graphic or lamp above the text.
 - [x] Finish the half-turn with the cable notch facing the rear.
 - [x] Preserve the full-width first screen and 960 px post-opening maximum.
 - [x] Use a native smooth final-story exit with a 650 ms input guard, without per-frame scroll writes, style updates, or lamp redraws; preserve touch and return navigation.
