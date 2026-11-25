@@ -40,6 +40,7 @@
 - [x] Light the finished lamp automatically at the final chapter.
 - [x] Keep the final light checkpoint white with indigo text, retaining warm ground illumination and bloom.
 - [x] Add an accessible On/Off switch between the finished model and text; preserve automatic illumination by default and user choice while scrolling.
+- [x] Remove its track border and visible state label, optically center the switch, and retain keyboard focus, screen-reader state, and its touch target.
 - [x] Align Making/Vibe text height and center the toggle between the lamp and heading, with independent final-camera framing and no toggle-induced movement.
 - [x] Lower story copy where viewport clearance permits, preserve the lamp position, and center the switch in the enlarged gap.
 - [x] Keep the guide attached to the first printed layers and fade it only once solid geometry is visible, with no empty handoff.

@@ -281,7 +281,7 @@ function App() {
             </section>
             <section className="story-presentation" id="making" aria-label="The story of Kaman" inert={entrance < 0.6} style={{ opacity: storyOpacity, visibility: storyOpacity > 0 ? 'visible' : 'hidden' }}>
               <div className={`narrative ${activeChapter === chapters.length - 1 ? 'narrative--with-switch' : ''}`}>
-                {activeChapter === chapters.length - 1 && <div className="lamp-controls"><button className="lamp-switch" type="button" role="switch" aria-label="Lamp light" aria-checked={lampEnabled} title={lampEnabled ? 'Turn lamp off' : 'Turn lamp on'} disabled={!modelReady} onClick={() => setLampEnabled((enabled) => !enabled)}><span className="lamp-switch-track" aria-hidden="true"><span className="lamp-switch-thumb" /></span></button><span className="lamp-switch-status" aria-hidden="true">{lampEnabled ? 'On' : 'Off'}</span></div>}
+                {activeChapter === chapters.length - 1 && <div className="lamp-controls"><button className="lamp-switch" type="button" role="switch" aria-label="Lamp light" aria-checked={lampEnabled} title={lampEnabled ? 'Turn lamp off' : 'Turn lamp on'} disabled={!modelReady} onClick={() => setLampEnabled((enabled) => !enabled)}><span className="lamp-switch-track" aria-hidden="true"><span className="lamp-switch-thumb" /></span></button></div>}
                 <div className="chapter-label"><span>0{activeChapter + 1}</span><span>{chapters[activeChapter].label}</span></div>
                 <div className="chapter-copy" key={activeChapter}>
                   <h2>{chapters[activeChapter].title}</h2>

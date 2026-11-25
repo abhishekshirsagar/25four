@@ -76,13 +76,17 @@ to On, retains the user's choice while scrolling, and controls material glow,
 point lights, the bulb, bloom, and the floor pool together. It is hidden during
 Making. "See Kaman lit" explicitly restores On. The switch supports keyboard
 activation and uses a 56 x 44px touch target; compact layouts preserve clearance.
+Its track is borderless, without a visible On/Off label. Color and thumb position
+indicate state; `aria-checked` retains screen-reader feedback and keyboard focus
+remains visible.
 
 Making and Vibe share the same text anchor and typography at each viewport size.
 The copy sits 32px lower on roomy desktops, 24px lower on taller phones, and 20px
 lower on compact phones with enough clearance. Tight viewports retain the original
 position so the down arrow is not clipped. Camera fitting subtracts this copy
-offset, keeping the lamp fixed; the switch moves by half the offset to remain
-centered between the lamp and heading. Framing still interpolates during assembly;
+offset, keeping the lamp fixed; the switch moves by half the offset, with a small
+optical adjustment to center it between the painted lamp edge and heading letters.
+Framing still interpolates during assembly;
 toggling illumination does not change that framing or scroll position.
 
 The vector's tilt and 45-degree turn use their own relaxed 1.2-second segment;
