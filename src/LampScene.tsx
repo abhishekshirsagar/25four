@@ -72,8 +72,7 @@ function shadePose(progress: number, reducedMotion: boolean, width: number) {
 
 function baseHeight(progress: number, reducedMotion: boolean, width: number) {
   const shade = shadePose(printingEnd, reducedMotion, width)
-  const occlusionHeight = (2 * shade.scale - 1.18) * 0.18
-  const startingHeight = shadeStart * shade.scale + shade.offsetY - occlusionHeight
+  const startingHeight = shadeStart * shade.scale + shade.offsetY
   return startingHeight * (1 - formation(progress, reducedMotion).base)
 }
 
@@ -254,7 +253,7 @@ function createPrintMaterial() {
           if (baseReveal < 0.999 && vLampPosition.y < ${internalColumnTop} && length(vLampPosition.xz) < ${internalColumnRadius}) discard;
           if (printReveal < 0.001 || vLampPosition.y > printHeight) discard;
         } else {
-          if (baseReveal < 0.001 || vLampPosition.y + baseHeight >= ${shadeStart} * shadeScale + shadeOffsetY) discard;
+          if (baseReveal <= 0.0 || vLampPosition.y + baseHeight >= ${shadeStart} * shadeScale + shadeOffsetY) discard;
         }
         float shadeMask = smoothstep(${shadeStart - 0.025}, ${shadeStart + 0.025}, vLampPosition.y);
         float layerWave = 0.5 + 0.5 * cos(vLampPosition.y * 523.5988);
@@ -279,7 +278,7 @@ function createPrintMaterial() {
         outgoingLight = mix(outgoingLight, glowingSurface, lampLight * shadeMask);
         #include <opaque_fragment>`)
   }
-  material.customProgramCacheKey = () => '25four-assembly-v12'
+  material.customProgramCacheKey = () => '25four-assembly-v13'
 
   const depthMaterial = new THREE.MeshDepthMaterial({
     depthPacking: THREE.RGBADepthPacking,
@@ -308,10 +307,10 @@ function createPrintMaterial() {
           if (baseReveal < 0.999 && vPrintY < ${internalColumnTop} && vPrintRadius < ${internalColumnRadius}) discard;
           if (printReveal < 0.001 || vPrintY > printHeight) discard;
         } else {
-          if (baseReveal < 0.001 || vPrintY + baseHeight >= ${shadeStart} * shadeScale + shadeOffsetY) discard;
+          if (baseReveal <= 0.0 || vPrintY + baseHeight >= ${shadeStart} * shadeScale + shadeOffsetY) discard;
         }`)
   }
-  depthMaterial.customProgramCacheKey = () => '25four-assembly-depth-v10'
+  depthMaterial.customProgramCacheKey = () => '25four-assembly-depth-v11'
   return { material, depthMaterial, uniforms }
 }
 
@@ -327,8 +326,9 @@ function StudioCamera({ progress, reducedMotion }: Pick<LampSceneProps, 'progres
     if (!viewport || !narrative || !header) return
     const style = getComputedStyle(narrative)
     const gap = parseFloat(style.getPropertyValue('--lamp-framing-gap'))
+    const copyOffset = parseFloat(style.getPropertyValue('--story-copy-offset')) || 0
     framing.current.top = header.getBoundingClientRect().bottom - viewport.getBoundingClientRect().top + 16
-    framing.current.bottom = parseFloat(style.top) - gap - 44 - 8
+    framing.current.bottom = parseFloat(style.top) - copyOffset - gap - 44 - 8
   }, [renderer, size.width, size.height])
   useEffect(() => {
     if (!(camera instanceof THREE.PerspectiveCamera)) return

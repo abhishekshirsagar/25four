@@ -41,6 +41,7 @@
 - [x] Keep the final light checkpoint white with indigo text, retaining warm ground illumination and bloom.
 - [x] Add an accessible On/Off switch between the finished model and text; preserve automatic illumination by default and user choice while scrolling.
 - [x] Align Making/Vibe text height and center the toggle between the lamp and heading, with independent final-camera framing and no toggle-induced movement.
+- [x] Lower story copy where viewport clearance permits, preserve the lamp position, and center the switch in the enlarged gap.
 - [x] Keep the guide attached to the first printed layers and fade it only once solid geometry is visible, with no empty handoff.
 - [x] Align the guide and print start to the actual shade rim, use stable visible-edge depth ordering, and shorten overlap to avoid a doubled rim.
 - [x] Remove cross-brace spans from rendered geometry and shadows without changing the base, outer shell, or source STL; retain the small attachment junctions.
@@ -49,7 +50,7 @@
 - [x] Keep angular velocity continuous through shade-print completion without a separate assembly acceleration phase.
 - [x] Start assembly immediately at shade-print completion with a modest initial velocity, removing the post-print hold.
 - [x] End layer reveal at the real model top and retain printing velocity into assembly, avoiding an early fully-visible shade and near-zero-motion interval.
-- [x] Start the base near the visible shade rim so initial movement is not concealed; verify early blue pixels on phone and desktop.
+- [x] Start the base fully concealed at the shade's clipping plane and reveal its emerging edge progressively in both color and shadow passes.
 - [x] Enlarge the resting outline on phone and desktop while preserving text clearance and the aligned print handoff.
 - [x] Remove the filament strand, tip, profile calculation and continuous loop while preserving layer-by-layer shader printing.
 - [x] Increase transmission through the middle/lower shade surfaces without increasing bulb intensity or the floor pool.

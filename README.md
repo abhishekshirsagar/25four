@@ -65,8 +65,9 @@ shade appear complete before assembly begins. Layer growth retains its nonzero
 finishing velocity, while the continuous rotation passes through shade completion
 without slowing to a stop or beginning a separate assembly turn.
 
-The base's starting height accounts for the shade's projected occlusion, so its
-first descent is visible instead of being hidden inside the enlarged shade.
+The base begins fully concealed at the enlarged shade's clipping plane. As it
+descends, its exposed edge grows continuously rather than switching on as an
+already-visible block. Color and shadow passes share the same reveal boundary.
 The resting outline is sized from 78vw, capped at 610px and 74% of the scene
 height, with additional framing for short desktop viewports.
 
@@ -77,10 +78,12 @@ Making. "See Kaman lit" explicitly restores On. The switch supports keyboard
 activation and uses a 56 x 44px touch target; compact layouts preserve clearance.
 
 Making and Vibe share the same text anchor and typography at each viewport size.
-The switch is centered between the lamp's lower edge and the heading. Its spacing
-is independent of final camera framing, so adjusting it does not move the lamp
-or copy. Framing interpolates during assembly; toggling illumination does not
-change that framing or scroll position.
+The copy sits 32px lower on roomy desktops, 24px lower on taller phones, and 20px
+lower on compact phones with enough clearance. Tight viewports retain the original
+position so the down arrow is not clipped. Camera fitting subtracts this copy
+offset, keeping the lamp fixed; the switch moves by half the offset to remain
+centered between the lamp and heading. Framing still interpolates during assembly;
+toggling illumination does not change that framing or scroll position.
 
 The vector's tilt and 45-degree turn use their own relaxed 1.2-second segment;
 the following print journey retains its established easing and proportional pace.
