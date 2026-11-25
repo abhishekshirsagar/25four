@@ -110,8 +110,26 @@ still builds the shade layer by layer. Lit-surface checks retain
 warm detail without clipping into the white page. Reverse wheel and Back to top
 restore the opening at desktop and mobile sizes; the light switch is confined to the finished-lamp section.
 
-The original STL remains approximately 19 MB. A lighter production model is a
-future bandwidth optimization, not a change to the supplied geometry here.
+The original STL remains unchanged. Its generated runtime asset is now 4.06 MB,
+using lossless compression and exact position/normal deduplication without
+geometry decimation.
+
+## Performance Optimization
+- [x] Preserve the original STL and verify retained positions, normals, triangle winding, and rim coordinates after compression.
+- [x] Replace the 20.0 MB browser STL with a generated 4.06 MB Meshopt/gzip model.
+- [x] Move normalization, support filtering, vertex deduplication, and rim sampling to the build pipeline.
+- [x] Reduce vertex/index data from 33.49 MB to 18.73 MB without removing visible triangles.
+- [x] Cache viewport-dependent camera fitting and skip unchanged projection updates.
+- [x] Remove unused Drei and unused font dependencies; defer the gzip compatibility fallback.
+- [x] Verify the final production base path, desktop/mobile interactions, fallback decoding, and build/lint gates.
+
+Optimization verification: the `/25four/` production build passes TypeScript and
+lint. Chromium checks at 1440 x 1000 and 390 x 844 confirm nonblank lit/unlit
+canvas pixels, unchanged typography and framing, keyboard switching, held-touch
+single-section navigation, specifications, and reverse travel without runtime
+errors or failed assets. Native decoding and the compatibility decoder both
+work. An injected model-fetch failure recovers through the pointer-accessible
+retry button; reduced-motion geometry retains its stationary final rotation.
 
 Guided-motion and night revision: wheel and keyboard inputs reach each checkpoint;
 mobile touch gestures reach form, print, assembly, and final light. Reverse

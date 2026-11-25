@@ -13,6 +13,11 @@ npm run dev
 
 Vite prints the local preview URL, normally http://localhost:5173/.
 
+Development and production builds automatically run `scripts/prepare-lamp.mjs`.
+It derives the ignored `src/assets/lamp-optimized.bin` from the unchanged STL,
+verifies exact geometry and rim data, and compresses it for browser delivery.
+No external model tooling or checked-in generated binary is required.
+
 ```sh
 npm run build
 npm run lint
@@ -22,10 +27,11 @@ npm run preview
 ## Editing
 
 - `src/App.tsx`: reversible landing-to-story timeline, two story sections, centered completion layout, next-section navigation, and product specifications.
-- `src/LampScene.tsx`: actual STL geometry, rounded contour, flat-to-3D transformation, shade-first print shader, scroll-driven rotation, and internal illumination.
+- `src/LampScene.tsx`: compressed STL-derived geometry, rounded contour, flat-to-3D transformation, shade-first print shader, scroll-driven rotation, and internal illumination.
 - `src/index.css`: locally bundled typography, palette, and global styles.
 - `src/product.css`: page layout and responsive styles.
-- `Full lamp.stl`: the supplied source model, bundled as a local asset by Vite.
+- `Full lamp.stl`: the supplied source model; preserved on disk and no longer shipped to browsers.
+- `scripts/prepare-lamp.mjs`: build-time normalization, existing support filtering, exact vertex deduplication, rim preparation, Meshopt/gzip compression, and round-trip verification.
 - `public/`: original downloaded Figma motifs, studio mark, and lamp drawing.
 - `CHECKLIST.md`: implementation progress and verification results.
 
@@ -125,15 +131,18 @@ the top opening. Bulb intensity and the floor-pool settings remain unchanged.
 - Shadow maps update in the same render frame as model changes, then stay cached while idle.
 - Pixel ratio is capped at 1.25, and the renderer no longer forces a high-performance GPU preference.
 - Standard material shading avoids unnecessary clearcoat and sheen calculations. Internal glow and bloom remain.
-- The parsed STL is normalized once in place, avoiding a duplicate copy of its vertex buffers. The original source file on disk is unchanged.
+- Camera fitting caches its 64 projection samples per viewport size rather than repeating them every frame. Animated zoom and assembly framing still interpolate as before; unchanged projections are not rewritten.
+- The runtime model is 4,058,933 bytes, down from the 19,997,184-byte STL (79.7% smaller). Meshopt and gzip compression use no geometry quantization or simplification. Build verification checks every retained triangle's winding and exact position/normal bits, plus the unchanged rim contour.
+- Exact position-and-normal deduplication reduces vertices from 1,199,826 to 584,876. Vertex/index payload drops from 33.49 MB to 18.73 MB (44.1% smaller); this is buffer data, not a measurement of total browser memory.
+- STL parsing, normalization, support filtering, and the full vertex scan for the rim now happen only at build time. The browser loads the prepared mesh and its 360-point rim. Native asynchronous gzip decompression is preferred; a small compatibility fallback is downloaded only when needed.
+- Unused Drei, DM Sans, and IBM Plex Mono dependencies are removed. All visible fonts, scripts, artwork, lighting, and controls remain.
 - The rendered index excludes 8,877 cross-brace triangles, while preserving the base and outer shell. The original STL still contains its full 399,942 triangles.
 
 A local render-counter check recorded zero new frames over 1.1 seconds for the
 settled final lamp and for a hidden tab after its in-flight frame completed.
-These are rendering checks, not a
-cross-device CPU/battery benchmark. The original approximately 20 MB STL and its
-399,942 triangles remain the main first-load/active-draw cost; offline geometry
-decimation or compression is still a possible follow-up.
+These are rendering checks, not a cross-device CPU/battery benchmark. The
+391,065 retained triangles remain the main active-draw cost. They have not been
+decimated, so the supplied form and surface detail are preserved.
 
 ## Copy Direction And References
 
@@ -165,4 +174,6 @@ Product specifications are transcribed from the supplied Figma packaging: 160 mm
 Add the official purchase destination for Shop now before launch. No price,
 availability, delivery promise, warranty, or checkout has been invented here.
 
-The supplied STL is approximately 19 MB and contains 399,942 triangles. Vite fingerprints it as a separate asset. A production-optimized model could reduce first-load bandwidth; the original is preserved here. No checkout, speculative finishes, or placeholder contact destination is included.
+The supplied STL contains 399,942 triangles and remains unchanged. Vite
+fingerprints the separately generated 4.06 MB runtime model instead. No checkout,
+speculative finishes, or placeholder contact destination is included.

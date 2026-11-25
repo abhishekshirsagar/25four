@@ -2,7 +2,9 @@ import { Component, memo, Suspense, useEffect, useEffectEvent, useLayoutEffect, 
 import type { ReactNode } from 'react'
 import { Canvas, useFrame, useLoader, useThree } from '@react-three/fiber'
 import * as THREE from 'three'
-import { STLLoader } from 'three/addons/loaders/STLLoader.js'
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js'
+import type { GLTF } from 'three/addons/loaders/GLTFLoader.js'
+import { MeshoptDecoder } from 'meshoptimizer/decoder'
 import { SVGLoader } from 'three/addons/loaders/SVGLoader.js'
 import type { SVGResult } from 'three/addons/loaders/SVGLoader.js'
 import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js'
@@ -10,7 +12,7 @@ import { RenderPass } from 'three/addons/postprocessing/RenderPass.js'
 import { ShaderPass } from 'three/addons/postprocessing/ShaderPass.js'
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js'
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js'
-import lampUrl from '../Full lamp.stl?url'
+import lampUrl from './assets/lamp-optimized.bin?url'
 
 export type LampSceneProps = {
   progress: number
@@ -26,7 +28,6 @@ const shadeRimHeight = 1.6
 const printingEnd = 0.68
 const internalColumnRadius = 0.9
 const internalColumnTop = 1.9
-const normalizedModels = new WeakMap<THREE.BufferGeometry, THREE.BufferGeometry>()
 const rimOutlines = new WeakMap<THREE.BufferGeometry, THREE.Vector3[]>()
 const baseColor = new THREE.Color('#02144c')
 const shadeColor = new THREE.Color('#f6f5f0')
@@ -84,104 +85,32 @@ function graphicRotation(camera: THREE.Quaternion, tilt: number, rotation: THREE
     0, 'YXZ')
 }
 
-function normalizedGeometry(source: THREE.BufferGeometry) {
-  const cached = normalizedModels.get(source)
-  if (cached) return cached
-  if (source.userData.kamanNormalized) return source
-
-  source.computeBoundingBox()
-  const bounds = source.boundingBox!
-  const center = bounds.getCenter(new THREE.Vector3())
-  const scale = modelHeight / (bounds.max.z - bounds.min.z)
-  const geometry = source
-  geometry.translate(-center.x, -center.y, -bounds.min.z)
-  geometry.rotateX(-Math.PI / 2)
-  geometry.scale(scale, scale, scale)
-  geometry.computeBoundingBox()
-  geometry.computeBoundingSphere()
-  geometry.userData.kamanNormalized = true
-  normalizedModels.set(source, geometry)
-  return geometry
-}
-
-function removeInternalSupports(geometry: THREE.BufferGeometry) {
-  if (geometry.userData.kamanSupportFilterVersion === 1) return geometry
-  const positions = geometry.getAttribute('position')
-  const indices = new Uint32Array(positions.count)
-  let retained = 0
-  let removed = 0
-  for (let vertex = 0; vertex < positions.count; vertex += 3) {
-    let inBand = true
-    let narrowX = true
-    let narrowZ = true
-    let centerX = 0
-    let centerZ = 0
-    for (let corner = 0; corner < 3; corner++) {
-      const index = vertex + corner
-      const horizontal = positions.getX(index)
-      const height = positions.getY(index)
-      const depth = positions.getZ(index)
-      centerX += horizontal
-      centerZ += depth
-      inBand &&= height >= 1.5999 && height <= 1.665
-      narrowX &&= Math.abs(horizontal) <= 0.084
-      narrowZ &&= Math.abs(depth) <= 0.084
-    }
-    const radius = Math.hypot(centerX / 3, centerZ / 3)
-    if (inBand && (narrowX || narrowZ) && radius > internalColumnRadius && radius < 1.88) removed++
-    else {
-      indices[retained++] = vertex
-      indices[retained++] = vertex + 1
-      indices[retained++] = vertex + 2
-    }
+class LampLoader extends GLTFLoader {
+  constructor(manager?: THREE.LoadingManager) {
+    super(manager)
+    this.setMeshoptDecoder(MeshoptDecoder)
   }
-  geometry.setIndex(new THREE.BufferAttribute(indices.subarray(0, retained), 1))
-  geometry.userData.kamanSupportTrianglesRemoved = removed
-  geometry.userData.kamanSupportFilterVersion = 1
-  return geometry
+
+  load(url: string, onLoad: (gltf: GLTF) => void, onProgress?: (event: ProgressEvent) => void, onError?: (error: unknown) => void) {
+    const loader = new THREE.FileLoader(this.manager).setResponseType('arraybuffer')
+    loader.load(url, (data) => {
+      const bytes = data as ArrayBuffer
+      const decoded = typeof DecompressionStream !== 'undefined'
+        ? new Response(new Blob([bytes]).stream().pipeThrough(new DecompressionStream('gzip'))).arrayBuffer()
+        : Promise.resolve().then(async () => {
+          const { gunzipSync } = await import('fflate')
+          const result = gunzipSync(new Uint8Array(bytes))
+          return result.buffer.slice(result.byteOffset, result.byteOffset + result.byteLength) as ArrayBuffer
+        })
+      decoded.then((buffer) => this.parse(buffer, '', onLoad, onError), onError)
+    }, onProgress, onError)
+  }
 }
 
 function rimGeometry(geometry: THREE.BufferGeometry) {
   const cached = rimOutlines.get(geometry)
   if (cached) return cached
-  const segments = 360
-  const radii = new Float32Array(segments)
-  const positions = geometry.getAttribute('position')
-  for (let vertex = 0; vertex < positions.count; vertex++) {
-    const height = positions.getY(vertex)
-    if (height < shadeStart) continue
-    const horizontal = positions.getX(vertex)
-    const depth = positions.getZ(vertex)
-    const angle = (Math.atan2(depth, horizontal) + Math.PI * 2) % (Math.PI * 2)
-    const segment = Math.floor(angle / (Math.PI * 2) * segments)
-    const radius = Math.hypot(horizontal, depth)
-    if (radius > radii[segment]) {
-      radii[segment] = radius
-    }
-  }
-  const radiusAt = (segment: number) => {
-    const index = (segment + segments) % segments
-    if (radii[index]) return radii[index]
-    for (let distance = 1; distance < segments; distance++) {
-      const before = radii[(index - distance + segments) % segments]
-      const after = radii[(index + distance) % segments]
-      if (before && after) return (before + after) / 2
-      if (before || after) return before || after
-    }
-    return 2
-  }
-  const perimeter = Array.from({ length: segments }, (_, segment) => {
-    let radius = 0
-    let weightSum = 0
-    for (let neighbor = -4; neighbor <= 4; neighbor++) {
-      const weight = 5 - Math.abs(neighbor)
-      radius += radiusAt(segment + neighbor) * weight
-      weightSum += weight
-    }
-    radius /= weightSum
-    const angle = (segment + 0.5) / segments * Math.PI * 2
-    return new THREE.Vector3(Math.cos(angle) * radius, 0, Math.sin(angle) * radius)
-  })
+  const perimeter = (geometry.userData.kamanRim as number[][]).map((point) => new THREE.Vector3(point[0], point[1], point[2]))
   rimOutlines.set(geometry, perimeter)
   return perimeter
 }
@@ -390,7 +319,7 @@ function StudioCamera({ progress, reducedMotion }: Pick<LampSceneProps, 'progres
   const camera = useThree((state) => state.camera)
   const renderer = useThree((state) => state.gl)
   const size = useThree((state) => state.size)
-  const framing = useRef({ top: 72, bottom: 500, point: new THREE.Vector3() })
+  const framing = useRef({ top: 72, bottom: 500, point: new THREE.Vector3(), baseZoom: 1.28, baseOffset: 0, fittedZoom: 1.28, fittedOffset: 0 })
   useLayoutEffect(() => {
     const viewport = renderer.domElement.closest('.experience-sticky')
     const narrative = viewport?.querySelector('.narrative')
@@ -409,40 +338,45 @@ function StudioCamera({ progress, reducedMotion }: Pick<LampSceneProps, 'progres
     const distance = Math.max(3.6, 4.5 / aspect) / (2 * Math.tan(halfFov)) * 1.12 / (mobile ? 0.44 : 0.77)
     camera.position.set(distance * 0.23, 1.5 + distance * 0.18, distance * 0.957)
     camera.lookAt(0, 1.5, 0)
-    camera.setViewOffset(size.width, size.height, 0, size.height * 0.10, size.width, size.height)
-    camera.updateProjectionMatrix()
-  }, [camera, size.width, size.height])
-  useFrame((state) => {
-    const activeCamera = state.camera
-    if (!(activeCamera instanceof THREE.PerspectiveCamera)) return
-    const mobile = state.size.width <= 650
-    const compact = mobile && state.size.height <= 700
-    const desktopOffset = !mobile && state.size.height <= 900 ? 0.06 : 0
+    camera.updateMatrixWorld()
+    const compact = mobile && size.height <= 700
+    const desktopOffset = !mobile && size.height <= 900 ? 0.06 : 0
     const baseZoom = compact ? 1.05 : mobile ? 1.15 : 1.28
-    const baseOffset = state.size.height * ((compact ? 0.15 : 0.10) + desktopOffset)
-    activeCamera.zoom = baseZoom
-    activeCamera.setViewOffset(state.size.width, state.size.height, 0, baseOffset, state.size.width, state.size.height)
+    const baseOffset = size.height * ((compact ? 0.15 : 0.10) + desktopOffset)
+    Object.assign(camera, { zoom: baseZoom })
+    camera.setViewOffset(size.width, size.height, 0, baseOffset, size.width, size.height)
     let top = Infinity
     let bottom = -Infinity
     const fit = framing.current
+    const bounds = [[0, 1.18], [modelHeight, 0.51]]
     for (let sample = 0; sample < 32; sample++) {
       const angle = sample / 32 * Math.PI * 2
-      for (const [height, radius] of [[0, 1.18], [modelHeight, 0.51]]) {
-        fit.point.set(Math.cos(angle) * radius, height, Math.sin(angle) * radius).project(activeCamera)
-        const vertical = (1 - fit.point.y) * state.size.height / 2
+      for (const [height, radius] of bounds) {
+        fit.point.set(Math.cos(angle) * radius, height, Math.sin(angle) * radius).project(camera)
+        const vertical = (1 - fit.point.y) * size.height / 2
         top = Math.min(top, vertical)
         bottom = Math.max(bottom, vertical)
       }
     }
     const scale = Math.min(1, Math.max(1, fit.bottom - fit.top) / (bottom - top))
-    const center = state.size.height / 2 - baseOffset
+    const center = size.height / 2 - baseOffset
     const fittedBottom = center + (bottom - center) * scale
-    const finalOffset = baseOffset + fittedBottom - fit.bottom
+    fit.baseZoom = baseZoom
+    fit.baseOffset = baseOffset
+    fit.fittedZoom = baseZoom * scale
+    fit.fittedOffset = baseOffset + fittedBottom - fit.bottom
+  }, [camera, size.width, size.height])
+  useFrame((state) => {
+    const activeCamera = state.camera
+    if (!(activeCamera instanceof THREE.PerspectiveCamera)) return
+    const fit = framing.current
     const assembly = reducedMotion ? Number(progress >= 0.9) : assemblyMotion(progress, false).base
-    activeCamera.zoom = printMotion(progress, reducedMotion).zoom * THREE.MathUtils.lerp(baseZoom, baseZoom * scale, assembly)
-    activeCamera.setViewOffset(state.size.width, state.size.height,
-      0, THREE.MathUtils.lerp(baseOffset, finalOffset, assembly),
-      state.size.width, state.size.height)
+    const zoom = printMotion(progress, reducedMotion).zoom * THREE.MathUtils.lerp(fit.baseZoom, fit.fittedZoom, assembly)
+    const offset = THREE.MathUtils.lerp(fit.baseOffset, fit.fittedOffset, assembly)
+    if (activeCamera.zoom !== zoom || activeCamera.view?.offsetY !== offset) {
+      activeCamera.zoom = zoom
+      activeCamera.setViewOffset(state.size.width, state.size.height, 0, offset, state.size.width, state.size.height)
+    }
   })
   return null
 }
@@ -520,10 +454,10 @@ function LampBloom() {
 
 function PrintedLamp({ progress, entrance = 1, lightOn, reducedMotion, onReady }: LampSceneProps) {
   const getScene = useThree((state) => state.get)
-  const source = useLoader(STLLoader, lampUrl)
+  const source = useLoader(LampLoader, lampUrl)
   const svg = useLoader(SVGLoader, `${assetBase}kaman-hero-solid.svg`)
   const motif = useLoader(THREE.TextureLoader, `${assetBase}kaman-motif-white.svg`)
-  const geometry = removeInternalSupports(normalizedGeometry(source))
+  const geometry = (source.scene.getObjectByProperty('isMesh', true) as THREE.Mesh).geometry
   const [surfaceGeometry] = useState(() => graphicGeometry(svg, geometry))
   const group = useRef<THREE.Group>(null)
   const mesh = useRef<THREE.Mesh>(null)
@@ -721,7 +655,7 @@ function PreviewFallback({ onRetry }: { onRetry: () => void }) {
         <ellipse cx="120" cy="35" rx="14" ry="4" fill="#e6e5dd" />
       </svg>
       <p role="status" style={{ margin: 0, color: '#59616b', fontSize: 13 }}>The 3D view couldn't load.</p>
-      <button type="button" onClick={onRetry} style={{ border: '1px solid #d5d9df', borderRadius: 4, padding: '8px 12px', background: '#fff', color: '#06164f', font: 'inherit', fontSize: 13, cursor: 'pointer' }}>Try 3D again</button>
+      <button type="button" onClick={onRetry} style={{ border: '1px solid #d5d9df', borderRadius: 4, padding: '8px 12px', background: '#fff', color: '#06164f', font: 'inherit', fontSize: 13, cursor: 'pointer', pointerEvents: 'auto' }}>Try 3D again</button>
     </div>
   )
 }
@@ -834,7 +768,7 @@ export default memo(function LampScene({ progress, entrance = 1, lightOn, reduce
       </PreviewBoundary>}
       {unavailable && <PreviewFallback onRetry={() => {
         const supported = supportsWebGL()
-        useLoader.clear(STLLoader, lampUrl)
+        useLoader.clear(LampLoader, lampUrl)
         setReady(false)
         setUnavailable(!supported)
         setWebglAvailable(supported)
