@@ -45,8 +45,8 @@
 - [x] Align the guide and print start to the actual shade rim, use stable visible-edge depth ordering, and shorten overlap to avoid a doubled rim.
 - [x] Remove cross-brace spans from rendered geometry and shadows without changing the base, outer shell, or source STL; retain the small attachment junctions.
 - [x] Precompile shaders before scene readiness and make printing travel respond promptly without shortening the full animation.
-- [x] Reverse the lamp's 180-degree upright printing rotation, retaining the small zoom.
-- [x] Use a slower reversed 45-degree assembly turn, synchronized with shrink/drop and reversible without changing the final cable orientation.
+- [x] Use one smooth 225-degree upright rotation from printing through floor contact, retaining direction, zoom, reverse travel, and the final cable orientation.
+- [x] Keep angular velocity continuous through shade-print completion without a separate assembly acceleration phase.
 - [x] Start assembly immediately at shade-print completion with a modest initial velocity, removing the post-print hold.
 - [x] End layer reveal at the real model top and retain printing velocity into assembly, avoiding an early fully-visible shade and near-zero-motion interval.
 - [x] Start the base near the visible shade rim so initial movement is not concealed; verify early blue pixels on phone and desktop.
@@ -58,7 +58,7 @@
 - [x] Spawn the blue base inside the shade, conceal its hidden portion, and accelerate it straight down without fading in; light the lamp and floor immediately at contact.
 - [x] Introduce a broad faint shadow ahead of assembly, then tighten it gradually with same-frame shadow updates.
 - [x] Center both story sections, with the graphic or lamp above the text.
-- [x] Finish the half-turn with the cable notch facing the rear.
+- [x] Finish the continuous rotation with the cable notch facing the rear.
 - [x] Preserve the full-width first screen and 960 px post-opening maximum.
 - [x] Use a native smooth final-story exit with a 650 ms input guard, without per-frame scroll writes, style updates, or lamp redraws; preserve touch and return navigation.
 - [x] Reduce mobile model scale, keep model-to-text clearance, and match the intended higher opening arch/title with cropped side steps across phone aspect ratios.

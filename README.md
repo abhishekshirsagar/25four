@@ -46,7 +46,7 @@ without advancing again. Horizontal panning and pinch zoom remain available.
 On phones, specifications occupy at least one viewport; swiping upward from their
 top returns to the lit lamp, while longer specification content scrolls normally.
 
-The flat outline rests at 45 degrees, then turns an additional 45 degrees during the controlled hinge into the shade's bottom rim. Its target vertices compensate for the combined turn so the final rim aligns point-for-point with the actual lamp. Printing starts while the guide is still visible; the guide follows the same scale, position, and rotation as the first layers and fades only after solid geometry is present. This avoids an empty handoff or a detached lower rim. While printing, the lamp turns 180 degrees around its upright axis. The shade enlarges as the print-height shader reveals each layer; there is no moving filament strand or tip. The internal support column and its shadow are excluded during printing; the cross-brace spans are filtered from the rendered geometry in every stage, retaining mount and shell junctions. Without stopping, the base drops and the shade shrinks and lifts simultaneously, sharing one continuous easing value. The base starts inside the shade, concealed above its lower edge, and remains at its final size and floor-relative position independently of the shade's scale. It emerges at full color without fading in or intersecting through the shade's sides; the shadow shader uses the same concealment. A faint, broad ground shadow is already present beneath the shade; it tightens and strengthens as the base approaches the floor, avoiding a sudden shadow pop. Floor contact switches on the lamp and ground illumination in the same frame and triggers the Vibe copy, with no delayed light ramp. The same sequence reverses when scrolling upward.
+The flat outline rests at 45 degrees, then turns an additional 45 degrees during the controlled hinge into the shade's bottom rim. Its target vertices compensate for the combined turn so the final rim aligns point-for-point with the actual lamp. Printing starts while the guide is still visible; the guide follows the same scale, position, and rotation as the first layers and fades only after solid geometry is present. This avoids an empty handoff or a detached lower rim. From printing through floor contact, the lamp makes one continuous 225-degree turn around its upright axis. The shade enlarges as the print-height shader reveals each layer; there is no moving filament strand or tip. The internal support column and its shadow are excluded during printing; the cross-brace spans are filtered from the rendered geometry in every stage, retaining mount and shell junctions. Without stopping, the base drops and the shade shrinks and lifts simultaneously, sharing one continuous easing value. The base starts inside the shade, concealed above its lower edge, and remains at its final size and floor-relative position independently of the shade's scale. It emerges at full color without fading in or intersecting through the shade's sides; the shadow shader uses the same concealment. A faint, broad ground shadow is already present beneath the shade; it tightens and strengthens as the base approaches the floor, avoiding a sudden shadow pop. Floor contact switches on the lamp and ground illumination in the same frame and triggers the Vibe copy, with no delayed light ramp. The same sequence reverses when scrolling upward.
 
 The handoff uses the actual shade rim at model height `1.6`, separate from the
 material split at `1.55`. The guide and first printed layer share this plane.
@@ -54,16 +54,16 @@ Visible guide pixels use biased depth ordering to avoid overlap flicker, while
 transparent interiors are discarded. The guide fades as soon as enough printed
 geometry exists, avoiding a lingering doubled rim.
 
-Printing includes a 180-degree upright rotation, followed by a slower 45-degree
-assembly turn in the same selected direction. Assembly begins at shade-print
-completion with a modest initial velocity, avoiding a hold between the phases.
-It shares its easing with the shade shrink and base drop, reverses with scrolling,
-lights at floor contact, and retains the finished rear-facing cable notch.
+Printing and assembly share one smooth 225-degree upright rotation from progress
+`0.18` through floor contact at `0.9`. One smootherstep curve accelerates and then
+decelerates across the whole journey, without restarting at shade-print completion.
+The direction, final rear-facing cable notch, zoom, and reverse travel are unchanged.
+Shade shrink and base drop keep their existing synchronized assembly easing.
 
 Layer reveal stops at the actual model height, with no overshoot that makes the
-shade appear complete before assembly begins. Layer growth and printing yaw share
-a curve with nonzero finishing velocity, flowing into the assembly motion rather
-than slowing to a stop at the completed shade.
+shade appear complete before assembly begins. Layer growth retains its nonzero
+finishing velocity, while the continuous rotation passes through shade completion
+without slowing to a stop or beginning a separate assembly turn.
 
 The base's starting height accounts for the shade's projected occlusion, so its
 first descent is visible instead of being hidden inside the enlarged shade.
@@ -87,7 +87,7 @@ the following print journey retains its established easing and proportional pace
 Small scroll gestures are accepted promptly, with a short trackpad-tail guard.
 Returning upward begins moving immediately and slows smoothly at its destination.
 
-Both story sections use a centered graphic or lamp above centered text. Its starting orientation is offset so the printing and assembly rotations finish with the cable notch at the rear. At the final light checkpoint, the background stays white with the original indigo text and navigation, while the lamp illuminates with internal light falloff, bloom, and a restrained, softly warm pool of light on the ground. The shade retains its detail, and the floor pool has reduced yellow saturation and intensity. The pool fades before its plane edges. The finished-lamp switch lets the user inspect both illuminated and unlit states without changing the assembly pose.
+Both story sections use a centered graphic or lamp above centered text. Its starting orientation is offset so the continuous printing-to-assembly rotation finishes with the cable notch at the rear. At the final light checkpoint, the background stays white with the original indigo text and navigation, while the lamp illuminates with internal light falloff, bloom, and a restrained, softly warm pool of light on the ground. The shade retains its detail, and the floor pool has reduced yellow saturation and intensity. The pool fades before its plane edges. The finished-lamp switch lets the user inspect both illuminated and unlit states without changing the assembly pose.
 
 The opening artwork remains full-width. Navigation uses the same fixed 960 px maximum container from the opening onward, with Shop now aligned to its right edge. The separate header up-arrow is removed; the studio mark and footer arrow still return to the top. Shop now currently opens the local product specifications, not a checkout. The model composition, story, specifications, and footer also have a 960 px maximum width. The specifications form a full-width indigo band with white text, soft blue labels, and white line artwork. The canvas remains viewport-wide throughout, avoiding resize-induced camera jumps and leaving room for bloom. Scrolling upward reverses the story and restores the stationary opening.
 

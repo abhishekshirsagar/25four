@@ -60,8 +60,8 @@ function formation(progress: number, reducedMotion: boolean) {
 
 function printMotion(progress: number, reducedMotion: boolean) {
   const movement = reducedMotion ? 0 : Math.sin(THREE.MathUtils.smoothstep(progress, 0.18, 0.72) * Math.PI)
-  const printing = printProgress(progress, reducedMotion)
-  return { rotationY: printing * Math.PI + assemblyMotion(progress, reducedMotion).base * Math.PI / 4, zoom: 1 + movement * 0.08 }
+  const rotation = reducedMotion ? 1 : THREE.MathUtils.smootherstep(progress, 0.18, 0.9)
+  return { rotationY: rotation * Math.PI * 1.25, zoom: 1 + movement * 0.08 }
 }
 
 function shadePose(progress: number, reducedMotion: boolean, width: number) {
