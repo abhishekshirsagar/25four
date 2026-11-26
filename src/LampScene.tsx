@@ -17,6 +17,7 @@ import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js'
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js'
 import lampUrl from './assets/lamp-optimized.bin?url'
 import ArchitectureArches, { vectorLineWidth } from './ArchitectureArches'
+import { archCurlEnd, archCurlStart, vectorTiltEnd } from './architectureLayout'
 
 export type LampSceneProps = {
   progress: number
@@ -38,8 +39,6 @@ const shadeColor = new THREE.Color('#f6f5f0')
 const warmColor = new THREE.Color('#ffbf75')
 const lampStartRotation = Math.PI * 0.75 - 0.24
 const vectorRestRotation = Math.PI / 4
-const vectorPrintRotation = Math.PI / 4
-const vectorTargetRotation = vectorRestRotation + vectorPrintRotation
 const assetBase = import.meta.env.BASE_URL
 
 function printProgress(progress: number, reducedMotion: boolean) {
@@ -137,7 +136,7 @@ function graphicGeometry(svg: SVGResult, model: THREE.BufferGeometry) {
     const after = rim[(Math.floor(segment) + 1) % rim.length]
     const radius = THREE.MathUtils.lerp(Math.hypot(before.x, before.z), Math.hypot(after.x, after.z), segment % 1)
     positions.push(horizontal, 0, depth)
-    targetPositions.push(Math.cos(angle + vectorTargetRotation) * radius, 0, Math.sin(angle + vectorTargetRotation) * radius)
+    targetPositions.push(Math.cos(angle) * radius, 0, Math.sin(angle) * radius)
     radii.push(1)
     coordinates.push(point.x / 1924, point.y / 1924)
     indices.push(0, index + 1, (index + 1) % perimeter.length + 1)
@@ -407,7 +406,7 @@ function StudioCamera({ progress, reducedMotion }: Pick<LampSceneProps, 'progres
       activeCamera.zoom = zoom
       activeCamera.setViewOffset(state.size.width, state.size.height, 0, offset, state.size.width, state.size.height)
     }
-  })
+  }, -2)
   return null
 }
 
@@ -511,6 +510,7 @@ function PrintedLamp({ progress, entrance = 1, lightOn, reducedMotion, onReady }
     offset: new THREE.Vector3(),
     orientation: new THREE.Euler(0, 0, 0, 'YXZ'),
     turn: new THREE.Quaternion(),
+    targetOrientation: new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), lampStartRotation),
     upright: new THREE.Vector3(0, 1, 0),
   }))
 
@@ -549,7 +549,8 @@ function PrintedLamp({ progress, entrance = 1, lightOn, reducedMotion, onReady }
     }
     if (mesh.current) mesh.current.visible = shadersReady && entrance >= 0.999 && (reducedMotion || progress > 0.18)
     if (outline.current && outlineMaterial.current) {
-      const tilt = reducedMotion ? Number(entrance >= 1) : THREE.MathUtils.smootherstep(progress, 0.125, 0.18)
+      const tilt = reducedMotion ? Number(entrance >= 1) : THREE.MathUtils.smootherstep(progress, archCurlStart, archCurlEnd)
+      const profileTilt = reducedMotion ? Number(entrance >= 1) : THREE.MathUtils.smootherstep(progress, archCurlEnd, vectorTiltEnd)
       pose.projected.copy(pose.center).project(state.camera)
       pose.right.setFromMatrixColumn(state.camera.matrixWorld, 0)
       pose.measure.copy(pose.center).add(pose.right).project(state.camera)
@@ -560,32 +561,31 @@ function PrintedLamp({ progress, entrance = 1, lightOn, reducedMotion, onReady }
       const startScale = startWidth / (4 * pixelsPerUnit)
       pose.offset.set(startHorizontal * 2 - 1, 1 - startVertical * 2, pose.projected.z).unproject(state.camera).sub(pose.center)
       outline.current.position.copy(pose.center).addScaledVector(pose.offset, 1 - entrance)
-      outline.current.position.y += Math.sin(tilt * Math.PI) * 0.08
       const flatWidth = Math.min(window.innerWidth * 0.78, 610, state.size.height * 0.74)
       const flatScale = flatWidth / (4 * pixelsPerUnit)
       const scale = THREE.MathUtils.lerp(startScale, THREE.MathUtils.lerp(flatScale, 1, tilt), entrance)
       outline.current.scale.setScalar(scale)
-      outline.current.quaternion.setFromEuler(graphicRotation(state.camera.quaternion, tilt, pose.orientation))
-      pose.turn.setFromAxisAngle(pose.upright, vectorRestRotation * THREE.MathUtils.smootherstep(entrance, 0.08, 0.9) + vectorPrintRotation * tilt)
-      outline.current.quaternion.multiply(pose.turn)
+      outline.current.quaternion.setFromEuler(graphicRotation(state.camera.quaternion, 0, pose.orientation))
+      pose.turn.setFromAxisAngle(pose.upright, vectorRestRotation * THREE.MathUtils.smootherstep(entrance, 0.08, 0.9))
+      outline.current.quaternion.multiply(pose.turn).slerp(pose.targetOrientation, tilt)
       if (!reducedMotion && progress >= 0.18) {
         const shade = shadePose(progress, false, state.size.width)
         outline.current.position.set(0, shadeRimHeight * shade.scale + shade.offsetY, 0)
         outline.current.scale.setScalar(shade.scale)
-        outline.current.quaternion.setFromAxisAngle(pose.upright, lampStartRotation + printMotion(progress, false).rotationY + vectorTargetRotation)
+        outline.current.quaternion.setFromAxisAngle(pose.upright, lampStartRotation + printMotion(progress, false).rotationY)
       }
       const graphic = outlineMaterial.current.uniforms
       const handoff = !shadersReady ? 0 : reducedMotion ? Number(entrance >= 1) : THREE.MathUtils.smoothstep(reveal.shade, 0.006, 0.06)
       graphic.graphicEntrance.value = entrance
       const opening = !reducedMotion && progress < 0.075
       graphic.graphicFill.value = opening ? 1 - THREE.MathUtils.smootherstep(entrance, 0.68, 0.88) : 1 - THREE.MathUtils.smoothstep(entrance, 0.48, 0.94)
-      graphic.graphicTilt.value = tilt
-      const architectureHandoff = Number(progress >= 0.125)
+      graphic.graphicTilt.value = profileTilt
+      const architectureHandoff = Number(progress >= archCurlEnd)
       graphic.graphicOpacity.value = (1 - handoff) * architectureHandoff
       graphic.graphicInk.value.copy(baseColor).lerp(shadeColor, handoff)
       if (surface.current) surface.current.visible = graphic.graphicFill.value > 0.001
       if (graphicStroke.current) {
-        graphicStroke.current.material.userData.guideTilt.value = tilt
+        graphicStroke.current.material.userData.guideTilt.value = profileTilt
         graphicStroke.current.material.opacity = graphic.graphicOpacity.value
         graphicStroke.current.material.color.copy(graphic.graphicInk.value)
         graphicStroke.current.material.resolution.set(state.size.width, state.size.height)
@@ -594,7 +594,7 @@ function PrintedLamp({ progress, entrance = 1, lightOn, reducedMotion, onReady }
     }
     if (pointLight.current) pointLight.current.intensity = uniforms.lampLight.value * 7
     if (spillLight.current) spillLight.current.intensity = uniforms.lampLight.value * 9
-  })
+  }, -1)
 
   useLayoutEffect(() => {
     if (!mesh.current || !surface.current || !outline.current) return
@@ -726,12 +726,13 @@ function supportsWebGL() {
 function SceneFrames({ active, ready, progress, entrance, lightOn, reducedMotion }: LampSceneProps & { active: boolean; ready: boolean }) {
   const invalidate = useThree((state) => state.invalidate)
   const renderer = useThree((state) => state.gl)
-  const previousFrame = useRef({ progress: NaN, entrance: NaN, ready: false, width: 0, height: 0 })
+  const previousFrame = useRef({ progress: NaN, entrance: NaN, ready: false, reducedMotion, width: 0, height: 0 })
   useFrame((state) => {
     const previous = previousFrame.current
-    if (previous.progress === progress && previous.entrance === entrance && previous.ready === ready && previous.width === state.size.width && previous.height === state.size.height) return
-    previousFrame.current = { progress, entrance: entrance ?? 1, ready, width: state.size.width, height: state.size.height }
-    Object.assign(state.gl.shadowMap, { needsUpdate: reducedMotion || progress > 0.18 })
+    if (previous.progress === progress && previous.entrance === entrance && previous.ready === ready && previous.reducedMotion === reducedMotion && previous.width === state.size.width && previous.height === state.size.height) return
+    const refit = previous.ready !== ready || previous.reducedMotion !== reducedMotion || previous.width !== state.size.width || previous.height !== state.size.height
+    previousFrame.current = { progress, entrance: entrance ?? 1, ready, reducedMotion, width: state.size.width, height: state.size.height }
+    Object.assign(state.gl.shadowMap, { needsUpdate: (reducedMotion || progress > 0.18) && (refit || progress < 0.9 || previous.progress < 0.9) })
   })
   useEffect(() => {
     const previous = renderer.shadowMap.autoUpdate
@@ -782,7 +783,7 @@ export default memo(function LampScene({ progress, entrance = 1, lightOn, reduce
   return (
     <div ref={container} data-lamp-progress={safeProgress.toFixed(4)} data-lamp-loaded={ready}
       data-render-active={active}
-      data-outline-owner="single-svg-surface" data-architecture-join={THREE.MathUtils.smootherstep(safeProgress, 0.075, 0.125).toFixed(4)} data-entrance={entrance.toFixed(4)}
+      data-outline-owner="single-svg-surface" data-architecture-join={THREE.MathUtils.smootherstep(safeProgress, 0.075, archCurlEnd).toFixed(4)} data-entrance={entrance.toFixed(4)}
       data-graphic-fill={(1 - (!reducedMotion && safeProgress < 0.075 ? THREE.MathUtils.smootherstep(entrance, 0.68, 0.88) : THREE.MathUtils.smoothstep(entrance, 0.48, 0.94))).toFixed(4)}
       data-lamp-state={unavailable ? 'unavailable' : ready ? 'ready' : 'loading'}
       data-lamp-reveal={formation(safeProgress, reducedMotion).shade.toFixed(4)}

@@ -70,6 +70,31 @@ const vertices = new Map()
 let vertexCount = 0
 let indexCount = 0
 let removedTriangles = 0
+let removedShadeFragments = 0
+let removedRimTabs = 0
+let preservedBaseTriangles = 0
+let preservedShadeShellTriangles = 0
+const retainedFaces = []
+const faceComponents = []
+const connectedVertices = new Map()
+const parents = []
+const componentRoot = (id) => {
+  while (parents[id] !== id) {
+    parents[id] = parents[parents[id]]
+    id = parents[id]
+  }
+  return id
+}
+const connectVertex = (index) => {
+  const key = `${positions.getX(index).toFixed(5)},${positions.getY(index).toFixed(5)},${positions.getZ(index).toFixed(5)}`
+  let id = connectedVertices.get(key)
+  if (id === undefined) {
+    id = parents.length
+    parents.push(id)
+    connectedVertices.set(key, id)
+  }
+  return id
+}
 
 for (let vertex = 0; vertex < positions.count; vertex += 3) {
   let inBand = true
@@ -77,6 +102,7 @@ for (let vertex = 0; vertex < positions.count; vertex += 3) {
   let narrowZ = true
   let centerX = 0
   let centerZ = 0
+  let maximumRadius = 0
   for (let corner = 0; corner < 3; corner++) {
     const index = vertex + corner
     const horizontal = positions.getX(index)
@@ -84,6 +110,7 @@ for (let vertex = 0; vertex < positions.count; vertex += 3) {
     const depth = positions.getZ(index)
     centerX += horizontal
     centerZ += depth
+    maximumRadius = Math.max(maximumRadius, Math.hypot(horizontal, depth))
     inBand &&= height >= 1.5999 && height <= 1.665
     narrowX &&= Math.abs(horizontal) <= 0.084
     narrowZ &&= Math.abs(depth) <= 0.084
@@ -93,6 +120,41 @@ for (let vertex = 0; vertex < positions.count; vertex += 3) {
     removedTriangles++
     continue
   }
+  if (inBand && (narrowX || narrowZ) && radius >= 1.88 && maximumRadius < 1.96) {
+    removedRimTabs++
+    continue
+  }
+  const corners = [0, 1, 2].map((corner) => connectVertex(vertex + corner))
+  for (const corner of corners.slice(1)) parents[componentRoot(corner)] = componentRoot(corners[0])
+  retainedFaces.push(vertex)
+  faceComponents.push(corners[0])
+}
+
+const components = new Map()
+for (let face = 0; face < retainedFaces.length; face++) {
+  const root = componentRoot(faceComponents[face])
+  let component = components.get(root)
+  if (!component) {
+    component = { minHeight: Infinity, maxHeight: -Infinity, maxRadius: 0 }
+    components.set(root, component)
+  }
+  for (let corner = 0; corner < 3; corner++) {
+    const index = retainedFaces[face] + corner
+    component.minHeight = Math.min(component.minHeight, positions.getY(index))
+    component.maxHeight = Math.max(component.maxHeight, positions.getY(index))
+    component.maxRadius = Math.max(component.maxRadius, Math.hypot(positions.getX(index), positions.getZ(index)))
+  }
+}
+
+for (let face = 0; face < retainedFaces.length; face++) {
+  const component = components.get(componentRoot(faceComponents[face]))
+  if (component.minHeight >= 1.5999 && component.maxHeight <= 1.665 && component.maxRadius < 1) {
+    removedShadeFragments++
+    continue
+  }
+  const vertex = retainedFaces[face]
+  if (component.minHeight < 1.5999) preservedBaseTriangles++
+  else preservedShadeShellTriangles++
   for (let corner = 0; corner < 3; corner++) {
     const original = vertex + corner
     const offset = original * 3
@@ -110,6 +172,10 @@ for (let vertex = 0; vertex < positions.count; vertex += 3) {
 }
 
 assert.equal(removedTriangles, 8877)
+assert.equal(removedShadeFragments, 32896)
+assert.equal(removedRimTabs, 350)
+assert.equal(preservedBaseTriangles, 274938)
+assert.equal(preservedShadeShellTriangles + removedRimTabs, 83231)
 const document = new Document()
 const buffer = document.createBuffer()
 const position = document.createAccessor('positions').setType(Accessor.Type.VEC3).setArray(uniquePositions.slice(0, vertexCount * 3)).setBuffer(buffer)
@@ -150,4 +216,4 @@ for (let index = 0; index < indexCount; index += 3) {
 }
 const compressed = gzipSync(optimized, { level: 9 })
 await writeFile(new URL('../src/assets/lamp-optimized.bin', import.meta.url), compressed)
-console.log(JSON.stringify({ sourceBytes: source.byteLength, runtimeBytes: compressed.byteLength, decodedBytes: optimized.byteLength, originalVertices: positions.count, runtimeVertices: vertexCount, retainedTriangles: indexCount / 3, removedTriangles, losslessVerified: true, preparationMs: Math.round(performance.now() - started) }))
+console.log(JSON.stringify({ sourceBytes: source.byteLength, runtimeBytes: compressed.byteLength, decodedBytes: optimized.byteLength, originalVertices: positions.count, runtimeVertices: vertexCount, retainedTriangles: indexCount / 3, removedTriangles, removedShadeFragments, removedRimTabs, preservedBaseTriangles, preservedShadeShellTriangles, losslessVerified: true, preparationMs: Math.round(performance.now() - started) }))

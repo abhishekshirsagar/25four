@@ -9,11 +9,11 @@ import { LineGeometry } from 'three/addons/lines/LineGeometry.js'
 import { LineMaterial } from 'three/addons/lines/LineMaterial.js'
 import { LineSegments2 } from 'three/addons/lines/LineSegments2.js'
 import { LineSegmentsGeometry } from 'three/addons/lines/LineSegmentsGeometry.js'
-import { architectureDetailOpacity, architectureLayout, centralWindowLayout } from './architectureLayout'
+import { archCurlEnd, archCurlStart, architectureDetailOpacity, architectureLayout, centralWindowLayout } from './architectureLayout'
 import { cuspedWindowPoints, palaceDomePoints, vectorArchWindowPoints } from './architectureProfiles'
 import { prepareTrimPaths } from './architectureTrim'
 
-const architectureEnd = 0.125
+const architectureEnd = archCurlEnd
 const archOrder = [3, 0, 1, 2]
 const lineWidth = 1.5
 const mobileLineWidth = 1
@@ -59,10 +59,14 @@ function lineMaterial(trimmed = false) {
     shader.fragmentShader = shader.fragmentShader.replaceAll('alpha = 1.0 - smoothstep', 'alpha *= 1.0 - smoothstep')
     if (!trimmed) return
     Object.assign(shader.uniforms, trim)
-    shader.vertexShader = `attribute float instanceTrimStart; attribute float instanceTrimEnd; attribute float instanceTrimLength; varying vec3 trimDistances; varying float trimCoordinate;\n` + shader.vertexShader.replace('void main() {', 'void main() { trimDistances = vec3(instanceTrimStart, instanceTrimEnd, instanceTrimLength); trimCoordinate = position.y;')
-    shader.fragmentShader = `uniform float trimProgress; uniform float trimMaximum; varying vec3 trimDistances; varying float trimCoordinate;\n` + shader.fragmentShader.replace('float alpha = opacity;', `float alpha = opacity;
+    shader.vertexShader = `attribute float instanceTrimStart; attribute float instanceTrimEnd; attribute float instanceTrimLength; attribute float instanceTrimReverse; varying vec3 trimDistances; varying float trimCoordinate; varying float trimReverse;\n` + shader.vertexShader.replace('void main() {', 'void main() { trimDistances = vec3(instanceTrimStart, instanceTrimEnd, instanceTrimLength); trimCoordinate = position.y; trimReverse = instanceTrimReverse;')
+    shader.fragmentShader = `uniform float trimProgress; uniform float trimMaximum; varying vec3 trimDistances; varying float trimCoordinate; varying float trimReverse;\n` + shader.fragmentShader.replace('float alpha = opacity;', `float alpha = opacity;
       float travel = clamp(trimCoordinate, 0.0, 1.0);
       float pathDistance = min(trimDistances.x + travel * trimDistances.z, trimDistances.y + (1.0 - travel) * trimDistances.z);
+      if (trimReverse > 0.5) {
+        float localMaximum = max((trimDistances.x + trimDistances.y + trimDistances.z) * 0.5, 0.00001);
+        pathDistance = (1.0 - pathDistance / localMaximum) * trimMaximum;
+      }
       if (trimProgress > 0.0) {
         float boundary = trimProgress * (trimMaximum + 0.0001);
         float feather = max(fwidth(pathDistance), 0.00001);
@@ -70,7 +74,7 @@ function lineMaterial(trimmed = false) {
         alpha *= smoothstep(boundary - feather, boundary + feather, pathDistance);
       }`)
   }
-  material.customProgramCacheKey = () => trimmed ? 'kaman-path-trim-v1' : 'kaman-standard-line-opacity-v1'
+  material.customProgramCacheKey = () => trimmed ? 'kaman-published-trim-local-arch-reverse-v5' : 'kaman-standard-line-opacity-v1'
   return material
 }
 
@@ -91,6 +95,7 @@ export default function ArchitectureArches({ svg, motif, vector, progress, entra
   const windowOutline = useRef<Line2>(null)
   const windowLayout = useRef('')
   const layout = useRef('')
+  const [curlPose] = useState(() => ({ flatOrientation: new THREE.Quaternion(), rotation: new THREE.Quaternion(), flatCenter: new THREE.Vector3(), center: new THREE.Vector3(), turn: new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), Math.PI / 4) }))
   const [measure] = useState(() => ({ center: new THREE.Vector3(), right: new THREE.Vector3(), point: new THREE.Vector3(), focus: new THREE.Vector3(), closeFocus: new THREE.Vector3(), finishFocus: new THREE.Vector3(), parentInverse: new THREE.Matrix4(), hinge: new THREE.Vector3(), joint: new THREE.Vector3(), end: new THREE.Vector3(), packed: Array.from({ length: 4 }, () => new THREE.Vector3()), ink: new THREE.Color('#02144c'), white: new THREE.Color('#ffffff'), startOrientation: new THREE.Quaternion(), front: new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1, 0, 0), Math.PI / 2) }))
 
   useLayoutEffect(() => {
@@ -178,12 +183,12 @@ export default function ArchitectureArches({ svg, motif, vector, progress, entra
     const parent = root.current
     if (!target || !elevation || !dome || !backing || !centralOutline || !parent) return
     if (!elevation.material.userData.trim || !dome.material.userData.trim || !centralOutline.material.userData.trim) return
-    const travel = THREE.MathUtils.clamp((progress - 0.075) / (architectureEnd - 0.075), 0, 1)
+    const travel = THREE.MathUtils.clamp((progress - 0.075) / (0.125 - 0.075), 0, 1)
     const buildingOpacity = architectureDetailOpacity(progress)
     const facadeReveal = THREE.MathUtils.smootherstep(entrance, 0.7, 0.98)
     const facadePresence = buildingOpacity * facadeReveal
     const gather = THREE.MathUtils.smootherstep(travel, 0.36, 0.66)
-    const curl = THREE.MathUtils.smootherstep(travel, 0.66, 1)
+    const curl = THREE.MathUtils.smootherstep(progress, archCurlStart, archCurlEnd)
     const handoff = Number(progress >= architectureEnd)
     const opacity = reducedMotion && entrance >= 1 ? 0 : 1 - handoff
     if (opacity <= 0.001) {
@@ -214,6 +219,10 @@ export default function ArchitectureArches({ svg, motif, vector, progress, entra
     parent.position.copy(measure.closeFocus).addScaledVector(measure.focus, -zoom)
     parent.updateMatrixWorld(true)
     measure.parentInverse.copy(parent.matrixWorld).invert()
+    const flatWidth = Math.min(globalThis.innerWidth * 0.78, 610, height * 0.74)
+    const flatScale = flatWidth / (4 * pixelsPerUnit)
+    curlPose.flatOrientation.copy(state.camera.quaternion).multiply(measure.front).multiply(curlPose.turn)
+    curlPose.flatCenter.set(0, 1.6, 0).applyMatrix4(measure.parentInverse)
     const inkTravel = THREE.MathUtils.smoothstep(entrance, 0.1, 0.65)
     elevation.material.color.copy(measure.white).lerp(measure.ink, inkTravel)
     dome.material.color.copy(elevation.material.color)
@@ -465,7 +474,7 @@ export default function ArchitectureArches({ svg, motif, vector, progress, entra
         }
       })
       anchors.push(new THREE.Vector3(-width / 2 / pixelsPerUnit, -(top + 12) / pixelsPerUnit, 0), new THREE.Vector3(width / 2 / pixelsPerUnit, -(top + 12) / pixelsPerUnit, 0), new THREE.Vector3(0, -apex / pixelsPerUnit, 0))
-      elevation.material.userData.trim.trimMaximum.value = prepareTrimPaths(elevation.geometry, anchors)
+      elevation.material.userData.trim.trimMaximum.value = prepareTrimPaths(elevation.geometry, anchors, 8)
       layout.current = key
     }
     target.updateMatrixWorld(true)
@@ -492,15 +501,15 @@ export default function ArchitectureArches({ svg, motif, vector, progress, entra
       measure.point.addScaledVector(measure.right, -(curve.horizontalOffset || 0) * archScale)
       panel.position.copy(measure.point)
       measure.startOrientation.copy(state.camera.quaternion).multiply(measure.front).multiply(curve.orientation)
-      panel.quaternion.copy(measure.startOrientation).slerp(target.quaternion, curl)
-      panel.scale.setScalar(THREE.MathUtils.lerp(archScale, target.scale.x / zoom, curl))
+      panel.quaternion.copy(measure.startOrientation).slerp(curlPose.flatOrientation, curl)
+      panel.scale.setScalar(THREE.MathUtils.lerp(archScale, flatScale / zoom, curl))
       panel.material.opacity = opacity * facadeReveal
       panel.material.linewidth = THREE.MathUtils.lerp(facadeLineWidth, vectorLineWidth, curl)
       panel.material.resolution.set(viewportWidth, height)
     })
     const middleEnd = panels.current[1].geometry.getAttribute('instanceEnd')
     measure.end.set(middleEnd.getX(middleEnd.count - 1), middleEnd.getY(middleEnd.count - 1), middleEnd.getZ(middleEnd.count - 1))
-      .add(curves[1].pivot).applyMatrix4(target.matrixWorld).applyMatrix4(measure.parentInverse)
+      .add(curves[1].pivot).multiplyScalar(flatScale / zoom).applyQuaternion(curlPose.flatOrientation).add(curlPose.flatCenter)
     measure.hinge.set(0, 1 - (archBaseline + arrivalOffset) / height * 2, measure.center.z).unproject(state.camera).lerp(measure.end, curl)
     for (const part of [1, 2, 0, 3]) {
       const panel = panels.current[part]
@@ -517,7 +526,17 @@ export default function ArchitectureArches({ svg, motif, vector, progress, entra
       measure.point.set(endpoint.getX(vertex), endpoint.getY(vertex), endpoint.getZ(vertex)).multiplyScalar(panel.scale.x).applyQuaternion(panel.quaternion)
       measure.packed[part].copy(measure.joint).sub(measure.point)
     }
-    panels.current.forEach((panel, part) => panel.position.lerp(measure.packed[part], gather))
+    curlPose.rotation.copy(curlPose.flatOrientation).invert().premultiply(target.quaternion)
+    curlPose.center.copy(target.position).applyMatrix4(measure.parentInverse)
+    panels.current.forEach((panel, part) => {
+      panel.position.lerp(measure.packed[part], gather)
+      if (progress >= archCurlStart) {
+        const scale = target.scale.x / flatScale
+        panel.position.sub(curlPose.flatCenter).multiplyScalar(scale).applyQuaternion(curlPose.rotation).add(curlPose.center)
+        panel.quaternion.premultiply(curlPose.rotation)
+        panel.scale.multiplyScalar(scale)
+      }
+    })
   })
 
   return <group ref={root} />

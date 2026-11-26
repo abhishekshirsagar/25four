@@ -18,10 +18,13 @@
 - [x] Separate the pavilion, cornice, gallery and arch crowns; add two raised-plinth lines beneath the window bases.
 - [x] Fold the center two bays into the upper vector arches and the outer bays into the lower arches.
 - [x] Smoothly strengthen the four retained arch strokes from their facade weight to 2.2px during curling, then keep that fixed-pixel stroke through the vector-to-rim morph without a thinning crossfade; verify desktop/phone widths and geometry.
-- [x] Trim all non-arch paths before movement, then gather horizontally and curl the connected strip over a dedicated 4-second interval with one ease per visual stage.
-- [x] Start trim fronts at arch endpoints and selected roof/cornice points, including connected junctions and disconnected ornaments; reverse travel redraws the paths.
+- [x] Trim all non-arch paths before movement, then gather for 0.93 seconds and curl for 1.47 seconds, matching full-return reverse timing; preserve clear-out timing and use an approximately 3.92-second pre-print budget with an 80ms rim morph.
+- [x] Preserve the published multi-point trim behavior and reverse only segments touching the eight retained arch endpoints; slow these local strokes across the full trim interval so they finish with the last sketch detail, while other paths keep their original schedule.
+- [x] Restore published distances, roof/cornice anchors, disconnected-piece starts, and independent roof/window timing; remove the global inward/random-pacing changes and verify rendered differences are confined to the arch-adjacent region.
 - [x] Retain standard vector rendering and full detail opacity while changing visible path length; keep opacity-aware anti-aliased line caps for the existing outline handoff.
 - [x] Cache trim distances per layout and verify desktop/mobile forward/reverse travel, stationary rigid arches during trimming, and recovery from missing hot-refresh uniforms.
+- [x] Index trim-splitting candidates and use a deterministic shortest-path heap; verify exact geometry/distance/reversal parity and reduced preparation CPU on the current facade.
+- [x] Reuse shadows after completed assembly; verify identical settled pixels, approximately halved final-stage triangle submissions, zero idle redraws, and refresh on resize and reverse disassembly.
 - [x] Publish guided progress directly from the animation driver; verify approximately 60fps curl on local desktop/phone viewports, closed joins, reverse travel, held-touch locking, light controls, reduced motion, and zero idle draws.
 - [x] Keep Vibe copy on reverse until the building reappears, without changing switch or next-arrow behavior.
 - [x] Give reverse uncurling and spreading a dedicated 2.4-second budget, preserving building reveal, reverse printing, opening zoom, and forward travel.
@@ -68,8 +71,10 @@
 - [x] Reverse the scene on upward travel with responsive initial velocity and smooth settling, avoiding the slow start of a mirrored ease-in.
 - [x] Run printing travel at half its previous speed while keeping opening and Back to top responsive.
 - [x] Tilt the flat contour into the shade's actual 3D bottom rim.
-- [x] Turn the vector another 45 degrees during the print handoff, compensate its target rim geometry, and preserve later motion and reverse alignment.
-- [x] Give the vector-to-print transform its own relaxed 1.2-second segment without slowing the rest of the print journey.
+- [x] Turn the vector directly toward the model's rim orientation without a compensating profile twist; verify monotonic projected-edge motion, unchanged polar angles, and exact guide/model rotation during printing.
+- [x] Match forward gathering/curling to the reverse spreading/uncurling durations using a shared 2.4-second moving-arch budget; keep curl/rotation synchronized, shorten the separate rim morph to 80ms, preserve printing pace, and verify partial resumes.
+- [x] Update the camera and moving guide before arch hinges; verify current-frame handoff alignment, closed joins, desktop/mobile overlap and cadence, mid-motion reversal, and reduced motion.
+- [x] Calculate curling in one fixed plane and apply a common fixed-path 3D turn without a vertical bob; verify finite scales, monotonic forward/reverse rotation, shared lobe normals, unchanged curves, and closed joins.
 - [x] Print the shade upward before revealing any of the blue base.
 - [x] Reveal the blue base only once the shade is complete.
 - [x] Light the finished lamp automatically at the final chapter.
@@ -81,6 +86,8 @@
 - [x] Lower mobile story copy a further 16px on tall phones and 8px on shorter layouts, preserve tight-screen safeguards and the lamp's camera framing, and center the switch in the enlarged gap; verify Making/Vibe and arrow clearance.
 - [x] Keep the guide attached to the first printed layers and fade it only once solid geometry is visible, with no empty handoff.
 - [x] Align the guide and print start to the actual shade rim, use stable visible-edge depth ordering, and shorten overlap to avoid a doubled rim.
+- [x] Remove the detached internal shade-ring remnant from the generated runtime model; protect every outer-shade/base triangle and retained position/normal bit, and keep the source STL and rim contour unchanged.
+- [x] Remove the attached brace-end rim tabs left by the first cutoff, preserving wall-reaching triangles; verify the marked back-left tab in enlarged early-print before/after captures and guard the exact 350-triangle removal.
 - [x] Remove cross-brace spans from rendered geometry and shadows without changing the base, outer shell, or source STL; retain the small attachment junctions.
 - [x] Precompile shaders before scene readiness and make printing travel respond promptly without shortening the full animation.
 - [x] Use one smooth 225-degree upright rotation from printing through floor contact, retaining direction, zoom, reverse travel, and the final cable orientation.

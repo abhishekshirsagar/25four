@@ -2,14 +2,18 @@ import { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react'
 import type { CSSProperties } from 'react'
 import { ArrowDown, ArrowUp, ArrowUpRight } from 'lucide-react'
 import './product.css'
-import { architectureDetailOpacity, centralWindowLayout, vectorArchPath } from './architectureLayout'
+import { archCurlEnd, archCurlStart, architectureDetailOpacity, centralWindowLayout, vectorArchPath, vectorTiltEnd } from './architectureLayout'
 
 const LampScene = lazy(() => import('./LampScene'))
 const scrollCheckpoints = [0, 0.075, 0.98]
 const finalCheckpoint = scrollCheckpoints[scrollCheckpoints.length - 1]
 const openingTransitionMs = 2400
 const architectureTransitionMs = 4000
-const vectorTransitionMs = 1200
+const movingArchTransitionMs = 2400
+const archGatherTransitionMs = 929
+const archCurlTransitionMs = movingArchTransitionMs - archGatherTransitionMs
+const architectureGatherSpeed = architectureTransitionMs * (archCurlStart - 0.093) / (0.125 - scrollCheckpoints[1]) / archGatherTransitionMs
+const rimMorphTransitionMs = 80
 const detailsTransitionMs = 650
 const toggleGrowMs = 180
 const toggleOnDelayMs = 40
@@ -212,11 +216,16 @@ function App() {
       const baseDuration = Math.max(900, Math.min(1700, Math.abs(target - start) * 0.75)) / 0.75
       const regularDuration = openingTravel ? openingTransitionMs : detailsTravel ? detailsTransitionMs : baseDuration * (printingTravel ? 2 : 1)
       const vectorTravel = printingTravel && direction > 0 && startProgress < 0.18 && targetProgress > 0.18
-      const architectureTravel = vectorTravel && startProgress < 0.125
-      const architectureTarget = section.origin + section.span * 0.125
-      const architectureDuration = architectureTravel ? architectureTransitionMs * Math.min(1, (0.125 - startProgress) / (0.125 - scrollCheckpoints[1])) : 0
-      const vectorTarget = section.origin + section.span * 0.18
-      const vectorDuration = vectorTravel ? vectorTransitionMs * Math.min(1, (0.18 - Math.max(startProgress, 0.125)) / (0.18 - 0.125)) : 0
+      const architectureTravel = vectorTravel && startProgress < archCurlStart
+      const architectureTarget = section.origin + section.span * archCurlStart
+      const architectureOriginalDuration = architectureTravel ? architectureTransitionMs * Math.max(0, archCurlStart - startProgress) / (0.125 - scrollCheckpoints[1]) : 0
+      const gatherLeadDuration = architectureTravel ? architectureTransitionMs * Math.max(0, 0.093 - startProgress) / (0.125 - scrollCheckpoints[1]) : 0
+      const architectureDuration = gatherLeadDuration + (architectureOriginalDuration - gatherLeadDuration) / architectureGatherSpeed
+      const curlTarget = section.origin + section.span * archCurlEnd
+      const curlDuration = vectorTravel ? archCurlTransitionMs * Math.max(0, Math.min(1, (archCurlEnd - Math.max(startProgress, archCurlStart)) / (archCurlEnd - archCurlStart))) : 0
+      const vectorTarget = section.origin + section.span * vectorTiltEnd
+      const profileDuration = vectorTravel ? rimMorphTransitionMs * Math.max(0, Math.min(1, (vectorTiltEnd - Math.max(startProgress, archCurlEnd)) / (vectorTiltEnd - archCurlEnd))) : 0
+      const vectorDuration = curlDuration + profileDuration
       const remainingDuration = vectorTravel ? regularDuration * (target - vectorTarget) / (target - start) : regularDuration
       const duration = architectureDuration + vectorDuration + remainingDuration
       if (detailsTravel) {
@@ -229,13 +238,13 @@ function App() {
       }
       const easeTravel = openingTravel ? easeOpening : printingTravel ? easePrinting : (value: number) => value * value * (3 - 2 * value)
       const reverse = target < start
-      const reverseArches = reverse && !openingTravel && startProgress > 0.093 && targetProgress < 0.125
-      const archEntry = section.origin + section.span * Math.min(startProgress, 0.125)
+      const reverseArches = reverse && !openingTravel && startProgress > 0.093 && targetProgress < archCurlEnd
+      const archEntry = section.origin + section.span * Math.min(startProgress, archCurlEnd)
       const archExit = section.origin + section.span * Math.max(targetProgress, 0.093)
       const archStartTime = reverseArches ? returningTimeFor((start - archEntry) / (start - target)) * duration : 0
       const archEndTime = reverseArches ? returningTimeFor((start - archExit) / (start - target)) * duration : 0
       const archTime = archEndTime - archStartTime
-      const reverseArchDuration = reverseArches ? Math.max(archTime * 2, 2400 * (archEntry - archExit) / (section.span * (0.125 - 0.093))) : 0
+      const reverseArchDuration = reverseArches ? Math.max(archTime * 2, movingArchTransitionMs * (archEntry - archExit) / (section.span * (archCurlEnd - 0.093))) : 0
       const extraArchTime = reverseArchDuration - archTime
       const advance = (now: number) => {
         const elapsedTime = now - motionStart
@@ -250,10 +259,12 @@ function App() {
         const eased = reverse ? easeReturning(elapsed) : easeTravel(elapsed)
         const position = vectorTravel
           ? elapsedTime < architectureDuration
-            ? start + (architectureTarget - start) * (elapsedTime / architectureDuration)
-            : elapsedTime < architectureDuration + vectorDuration
-              ? (architectureTravel ? architectureTarget : start) + (vectorTarget - (architectureTravel ? architectureTarget : start)) * easeOpening((elapsedTime - architectureDuration) / vectorDuration)
-              : vectorTarget + (target - vectorTarget) * easePrinting(Math.min(1, (elapsedTime - architectureDuration - vectorDuration) / remainingDuration))
+            ? start + (architectureTarget - start) * ((elapsedTime <= gatherLeadDuration ? elapsedTime : gatherLeadDuration + (elapsedTime - gatherLeadDuration) * architectureGatherSpeed) / architectureOriginalDuration)
+            : elapsedTime < architectureDuration + curlDuration
+              ? (architectureTravel ? architectureTarget : start) + (curlTarget - (architectureTravel ? architectureTarget : start)) * ((elapsedTime - architectureDuration) / curlDuration)
+              : elapsedTime < architectureDuration + vectorDuration
+                ? Math.max(start, curlTarget) + (vectorTarget - Math.max(start, curlTarget)) * ((elapsedTime - architectureDuration - curlDuration) / profileDuration)
+                : vectorTarget + (target - vectorTarget) * easePrinting(Math.min(1, (elapsedTime - architectureDuration - vectorDuration) / remainingDuration))
           : start + (target - start) * eased
         window.scrollTo({ top: position, behavior: 'instant' })
         updateProgress((position - section.origin) / section.span)

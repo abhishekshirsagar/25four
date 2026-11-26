@@ -1,4 +1,7 @@
 export const vectorArchPath = 'M553.976 553.974C553.976 470.714 550.459 381.354 580.091 305.562C609.722 229.77 672.5 167.545 741.167 117.75C797.972 76.557 858.807 43.8707 922.067 16.4888L962.002 0L999.026 15.234C1063.31 42.8621 1125.12 75.9039 1182.8 117.722C1251.46 167.513 1314.27 229.746 1343.91 305.545C1373.55 381.344 1370.03 470.708 1370.03 553.975'
+export const archCurlStart = 0.108
+export const archCurlEnd = 0.14
+export const vectorTiltEnd = 0.18
 
 export function architectureDetailOpacity(progress: number) {
   const fade = Math.max(0, Math.min(1, (progress - 0.075) / ((0.125 - 0.075) * 0.3)))
