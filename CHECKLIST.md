@@ -1,5 +1,40 @@
 # Kaman / Bagru Experience
 
+## Local Architecture Experiment
+- [x] Keep all new work local, with no push, upload, or deployment.
+- [x] Set the browser title to Kaman Bagru | 25.four.
+- [x] Fit the front-elevation drawing inside the existing 960px content container, with responsive side padding and compact-height fitting.
+- [x] Fix facade proportions to the corrected 1036 x 698 reference, with a shorter pavilion and wider arcade; uniformly fit tall/short desktop and phone viewports and verify constant projected aspect ratio and header/copy clearance.
+- [x] Overlap the retiring opening graphic and arriving facade in one canvas, without a blank interval.
+- [x] Build the elevation arches from exact quarters of the existing outline; animate only translation, rotation, and uniform scale so their shapes stay unchanged.
+- [x] Match all structure, arch, and ghumat strokes at 1.5px.
+- [x] Recompose the facade around a connected jharokha gallery, larger lower arcade, central ceremonial entrance, and responsive balcony spacing using the supplied architectural references.
+- [x] Add restrained arch surrounds, pier profiles, cornice joints, and roof ribs without fills or changes to the folding curves.
+- [x] Start inside the central pavilion window with its indigo texture, then zoom out the same architectural group without a shape-to-roof morph.
+- [x] Hide non-window facade geometry in the stationary opening, redraw it late in the zoom, and verify reverse return restores the same window with no extra lines or idle draws.
+- [x] Extend the full-width header white band from the top with equal padding below its controls, and reserve its complete height in facade and cached lamp-camera fitting; verify desktop/phone clearance.
+- [x] Match upper window crowns to the original vector arch profile and join side chhatri supports continuously to the facade.
+- [x] Keep one unchanged central window and outline through the zoom, restore the half-tile-staggered pattern at 10%, and remove the blue backing from the complete illustration.
+- [x] Separate the pavilion, cornice, gallery and arch crowns; add two raised-plinth lines beneath the window bases.
+- [x] Fold the center two bays into the upper vector arches and the outer bays into the lower arches.
+- [x] Smoothly strengthen the four retained arch strokes from 1.5px to 2.2px during curling, then keep that fixed-pixel stroke through the vector-to-rim morph without a thinning crossfade; verify desktop/phone widths and geometry.
+- [x] Trim all non-arch paths before movement, then gather horizontally and curl the connected strip over a dedicated 4-second interval with one ease per visual stage.
+- [x] Start trim fronts at arch endpoints and selected roof/cornice points, including connected junctions and disconnected ornaments; reverse travel redraws the paths.
+- [x] Retain standard vector rendering and full detail opacity while changing visible path length; keep opacity-aware anti-aliased line caps for the existing outline handoff.
+- [x] Cache trim distances per layout and verify desktop/mobile forward/reverse travel, stationary rigid arches during trimming, and recovery from missing hot-refresh uniforms.
+- [x] Publish guided progress directly from the animation driver; verify approximately 60fps curl on local desktop/phone viewports, closed joins, reverse travel, held-touch locking, light controls, reduced motion, and zero idle draws.
+- [x] Keep Vibe copy on reverse until the building reappears, without changing switch or next-arrow behavior.
+- [x] Give reverse uncurling and spreading a dedicated 2.4-second budget, preserving building reveal, reverse printing, opening zoom, and forward travel.
+- [x] Separate paired pillar strokes in screen pixels while retaining equal bay widths and readable compact piers.
+- [x] Skip invisible ground draws and empty shadow updates in vector stages; verify four versus seven draws with identical pixels and no redundant vector settling frames.
+- [x] Generate static facade detail from one mirrored half, center arch profiles by their bounds, and anchor balcony brackets to their ledges.
+- [x] Equalize all four usable bays with identical piers and matching edge half-piers; provide consistent breathing room around the arch windows.
+- [x] Improve illustration stroke anti-aliasing and Retina resolution while retaining the dense lamp stage's DPR 1.25 cap.
+- [x] Separate top-window bottoms from the grille with a 6px gap without changing window height or profile.
+- [x] Replace competing opening motions with one central-window zoom that keeps the texture attached to the architecture.
+- [x] Consult Rajasthan Tourism's Hawa Mahal photograph and description, then add original chhatri, jharokha, lattice, fluted-pier and chhajja-bracket details without bundling the photograph.
+- [x] Verify desktop/mobile pixel handoffs, forward/reverse navigation, held-touch locking, light switching, no autoplay, and reduced motion.
+
 ## Sources And Direction
 - [x] Inspect supplied Figma landing, motif, typefaces, packaging, and specifications.
 - [x] Download the original Figma vectors locally; use Unbounded, Space Grotesk, and Platypi.
@@ -40,6 +75,7 @@
 - [x] Light the finished lamp automatically at the final chapter.
 - [x] Keep the final light checkpoint white with indigo text, retaining warm ground illumination and bloom.
 - [x] Add an accessible On/Off switch between the finished model and text; preserve automatic illumination by default and user choice while scrolling.
+- [x] Grow the off-state switch after completed assembly, automatically light after 220ms, and finish switch-off/shrink before reverse disassembly; verify actual scale completion, manual keyboard switching, early-reversal cancellation, and reduced motion.
 - [x] Remove its track border and visible state label, optically center the switch, and retain keyboard focus, screen-reader state, and its touch target.
 - [x] Align Making/Vibe text height and center the toggle between the lamp and heading, with independent final-camera framing and no toggle-induced movement.
 - [x] Lower story copy where viewport clearance permits, preserve the lamp position, and center the switch in the enlarged gap.
@@ -57,7 +93,7 @@
 - [x] Increase transmission through the middle/lower shade surfaces without increasing bulb intensity or the floor pool.
 - [x] Enlarge the shade-only pose, then start the base drop and shade shrink/lift simultaneously on one easing curve; keep the base independently floor-aligned.
 - [x] Trigger brighter illumination only when the base reaches the floor.
-- [x] Spawn the blue base inside the shade, conceal its hidden portion, and accelerate it straight down without fading in; light the lamp and floor immediately at contact.
+- [x] Spawn the blue base inside the shade, conceal its hidden portion, and accelerate it straight down without fading in; grow the toggle at floor contact, then automatically light the lamp and floor together.
 - [x] Introduce a broad faint shadow ahead of assembly, then tighten it gradually with same-frame shadow updates.
 - [x] Center both story sections, with the graphic or lamp above the text.
 - [x] Finish the continuous rotation with the cable notch facing the rear.

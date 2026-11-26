@@ -4,6 +4,9 @@ import { Canvas, useFrame, useLoader, useThree } from '@react-three/fiber'
 import * as THREE from 'three'
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js'
 import type { GLTF } from 'three/addons/loaders/GLTFLoader.js'
+import { Line2 } from 'three/addons/lines/Line2.js'
+import { LineGeometry } from 'three/addons/lines/LineGeometry.js'
+import { LineMaterial } from 'three/addons/lines/LineMaterial.js'
 import { MeshoptDecoder } from 'meshoptimizer/decoder'
 import { SVGLoader } from 'three/addons/loaders/SVGLoader.js'
 import type { SVGResult } from 'three/addons/loaders/SVGLoader.js'
@@ -13,6 +16,7 @@ import { ShaderPass } from 'three/addons/postprocessing/ShaderPass.js'
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js'
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js'
 import lampUrl from './assets/lamp-optimized.bin?url'
+import ArchitectureArches, { vectorLineWidth } from './ArchitectureArches'
 
 export type LampSceneProps = {
   progress: number
@@ -148,6 +152,31 @@ function graphicGeometry(svg: SVGResult, model: THREE.BufferGeometry) {
   return geometry
 }
 
+function createGraphicStroke(surface: THREE.BufferGeometry) {
+  const closed = (attribute: THREE.BufferAttribute) => [...Array.from(attribute.array).slice(3), attribute.getX(1), attribute.getY(1), attribute.getZ(1)]
+  const geometry = new LineGeometry().setPositions(closed(surface.getAttribute('position') as THREE.BufferAttribute))
+  const rim = new LineGeometry().setPositions(closed(surface.getAttribute('rimPosition') as THREE.BufferAttribute))
+  geometry.setAttribute('instanceRimStart', rim.getAttribute('instanceStart'))
+  geometry.setAttribute('instanceRimEnd', rim.getAttribute('instanceEnd'))
+  rim.dispose()
+  const material = new LineMaterial({ color: '#02144c', linewidth: vectorLineWidth, transparent: true, depthWrite: true, alphaToCoverage: true, polygonOffset: true, polygonOffsetFactor: -1, polygonOffsetUnits: -1 })
+  const tilt = { value: 0 }
+  material.userData.guideTilt = tilt
+  material.onBeforeCompile = (shader) => {
+    shader.uniforms.guideTilt = tilt
+    shader.vertexShader = `uniform float guideTilt; attribute vec3 instanceRimStart; attribute vec3 instanceRimEnd;\n` + shader.vertexShader
+      .replace('vec4( instanceStart, 1.0 )', 'vec4( mix(instanceStart, instanceRimStart, guideTilt), 1.0 )')
+      .replace('vec4( instanceEnd, 1.0 )', 'vec4( mix(instanceEnd, instanceRimEnd, guideTilt), 1.0 )')
+    shader.fragmentShader = shader.fragmentShader.replaceAll('alpha = 1.0 - smoothstep', 'alpha *= 1.0 - smoothstep')
+  }
+  material.customProgramCacheKey = () => 'kaman-continuous-vector-stroke-v1'
+  const stroke = new Line2(geometry, material)
+  stroke.name = 'kaman-vector-rim-stroke'
+  stroke.frustumCulled = false
+  stroke.renderOrder = 2
+  return stroke
+}
+
 function createGraphicMaterial(pattern: THREE.Texture) {
   return new THREE.ShaderMaterial({
     transparent: true,
@@ -158,6 +187,7 @@ function createGraphicMaterial(pattern: THREE.Texture) {
     side: THREE.DoubleSide,
     uniforms: {
       graphicEntrance: { value: 0 },
+      graphicFill: { value: 1 },
       graphicTilt: { value: 0 },
       graphicOpacity: { value: 1 },
       graphicInk: { value: new THREE.Color('#02144c') },
@@ -178,6 +208,7 @@ function createGraphicMaterial(pattern: THREE.Texture) {
       }`,
     fragmentShader: `
       uniform float graphicEntrance;
+      uniform float graphicFill;
       uniform float graphicOpacity;
       uniform vec3 graphicInk;
       uniform sampler2D motifTexture;
@@ -189,15 +220,13 @@ function createGraphicMaterial(pattern: THREE.Texture) {
         return texture2D(motifTexture, motifUv).a * withinTile;
       }
       void main() {
-        float edgeWidth = max(fwidth(vEdgeRadius) * 2.2, 0.00001);
-        float outline = smoothstep(1.0 - edgeWidth, 1.0 - edgeWidth * 0.35, vEdgeRadius);
-        float fill = 1.0 - smoothstep(0.48, 0.94, graphicEntrance);
+        float fill = graphicFill;
         vec2 tile = fract(vGraphicUv * (1924.0 / 67.5));
         float motif = max(motifAt(tile), motifAt(fract(tile + 0.5))) * 0.10 * fill;
         vec3 displayInk = linearToOutputTexel(vec4(graphicInk, 1.0)).rgb;
         vec3 motifInk = mix(displayInk, vec3(1.0), motif);
         vec3 ink = sRGBTransferEOTF(vec4(motifInk, 1.0)).rgb;
-        float opacity = max(outline, fill) * graphicOpacity;
+        float opacity = fill * graphicOpacity;
         if (opacity <= 0.001) discard;
         gl_FragColor = vec4(ink, opacity);
         #include <colorspace_fragment>
@@ -327,7 +356,8 @@ function StudioCamera({ progress, reducedMotion }: Pick<LampSceneProps, 'progres
     const style = getComputedStyle(narrative)
     const gap = parseFloat(style.getPropertyValue('--lamp-framing-gap'))
     const copyOffset = parseFloat(style.getPropertyValue('--story-copy-offset')) || 0
-    framing.current.top = header.getBoundingClientRect().bottom - viewport.getBoundingClientRect().top + 16
+    const headerPadding = Math.max(0, -parseFloat(getComputedStyle(header, '::before').bottom) || 0)
+    framing.current.top = header.getBoundingClientRect().bottom - viewport.getBoundingClientRect().top + headerPadding + 16
     framing.current.bottom = parseFloat(style.top) - copyOffset - gap - 44 - 8
   }, [renderer, size.width, size.height])
   useEffect(() => {
@@ -464,6 +494,7 @@ function PrintedLamp({ progress, entrance = 1, lightOn, reducedMotion, onReady }
   const outline = useRef<THREE.Group>(null)
   const surface = useRef<THREE.Mesh>(null)
   const outlineMaterial = useRef<THREE.ShaderMaterial>(null)
+  const graphicStroke = useRef<Line2>(null)
   const pointLight = useRef<THREE.PointLight>(null)
   const spillLight = useRef<THREE.PointLight>(null)
   const printing = useRef<ReturnType<typeof createPrintMaterial> | null>(null)
@@ -518,7 +549,7 @@ function PrintedLamp({ progress, entrance = 1, lightOn, reducedMotion, onReady }
     }
     if (mesh.current) mesh.current.visible = shadersReady && entrance >= 0.999 && (reducedMotion || progress > 0.18)
     if (outline.current && outlineMaterial.current) {
-      const tilt = reducedMotion ? Number(entrance >= 1) : THREE.MathUtils.smootherstep(progress, 0.075, 0.18)
+      const tilt = reducedMotion ? Number(entrance >= 1) : THREE.MathUtils.smootherstep(progress, 0.125, 0.18)
       pose.projected.copy(pose.center).project(state.camera)
       pose.right.setFromMatrixColumn(state.camera.matrixWorld, 0)
       pose.measure.copy(pose.center).add(pose.right).project(state.camera)
@@ -546,9 +577,19 @@ function PrintedLamp({ progress, entrance = 1, lightOn, reducedMotion, onReady }
       const graphic = outlineMaterial.current.uniforms
       const handoff = !shadersReady ? 0 : reducedMotion ? Number(entrance >= 1) : THREE.MathUtils.smoothstep(reveal.shade, 0.006, 0.06)
       graphic.graphicEntrance.value = entrance
+      const opening = !reducedMotion && progress < 0.075
+      graphic.graphicFill.value = opening ? 1 - THREE.MathUtils.smootherstep(entrance, 0.68, 0.88) : 1 - THREE.MathUtils.smoothstep(entrance, 0.48, 0.94)
       graphic.graphicTilt.value = tilt
-      graphic.graphicOpacity.value = 1 - handoff
+      const architectureHandoff = Number(progress >= 0.125)
+      graphic.graphicOpacity.value = (1 - handoff) * architectureHandoff
       graphic.graphicInk.value.copy(baseColor).lerp(shadeColor, handoff)
+      if (surface.current) surface.current.visible = graphic.graphicFill.value > 0.001
+      if (graphicStroke.current) {
+        graphicStroke.current.material.userData.guideTilt.value = tilt
+        graphicStroke.current.material.opacity = graphic.graphicOpacity.value
+        graphicStroke.current.material.color.copy(graphic.graphicInk.value)
+        graphicStroke.current.material.resolution.set(state.size.width, state.size.height)
+      }
       outline.current.visible = graphic.graphicOpacity.value > 0.001 && !(reducedMotion && entrance >= 1)
     }
     if (pointLight.current) pointLight.current.intensity = uniforms.lampLight.value * 7
@@ -556,9 +597,13 @@ function PrintedLamp({ progress, entrance = 1, lightOn, reducedMotion, onReady }
   })
 
   useLayoutEffect(() => {
-    if (!mesh.current || !surface.current) return
+    if (!mesh.current || !surface.current || !outline.current) return
+    const parent = outline.current
     const resources = createPrintMaterial()
     const graphic = createGraphicMaterial(motif)
+    const stroke = createGraphicStroke(surfaceGeometry)
+    parent.add(stroke)
+    graphicStroke.current = stroke
     mesh.current.material = resources.material
     mesh.current.customDepthMaterial = resources.depthMaterial
     surface.current.material = graphic
@@ -566,16 +611,20 @@ function PrintedLamp({ progress, entrance = 1, lightOn, reducedMotion, onReady }
     printing.current = resources
     return () => {
       printing.current = null
+      graphicStroke.current = null
+      parent.remove(stroke)
       const release = () => {
         resources.material.dispose()
         resources.depthMaterial.dispose()
         graphic.dispose()
+        stroke.geometry.dispose()
+        stroke.material.dispose()
       }
       if (warmup.current) void warmup.current.then(release, release)
       else release()
       outlineMaterial.current = null
     }
-  }, [motif])
+  }, [motif, surfaceGeometry])
 
   if (warmupError) throw warmupError
 
@@ -584,6 +633,7 @@ function PrintedLamp({ progress, entrance = 1, lightOn, reducedMotion, onReady }
       <group ref={outline} position={[0, shadeRimHeight, 0]}>
         <mesh ref={surface} geometry={surfaceGeometry} dispose={null} renderOrder={2} />
       </group>
+      <ArchitectureArches svg={svg} motif={motif} vector={outline} progress={progress} entrance={entrance} reducedMotion={reducedMotion} />
       <group ref={group} rotation={[0, lampStartRotation, 0]}>
         <mesh ref={mesh} geometry={geometry} visible={false} castShadow receiveShadow dispose={null} />
         <mesh position={[0, 2.05, 0]} visible={lightOn && entrance >= 1}>
@@ -606,14 +656,15 @@ function Ground({ progress, reducedMotion, lightOn }: Pick<LampSceneProps, 'prog
   const [lightUniforms] = useState(() => ({ lampLight: { value: 0 } }))
   const [shadowViewport] = useState(() => new THREE.Vector2())
   useFrame((state) => {
+    if (presence <= 0 && !lightOn) return
     shadowViewport.set(state.size.width * state.gl.getPixelRatio(), state.size.height * state.gl.getPixelRatio())
     if (!illumination.current) return
     const light = illumination.current.uniforms.lampLight
     light.value = Number(lightOn)
   })
   return (
-    <group>
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.015, 0]} receiveShadow>
+    <group name="kaman-ground" visible={presence > 0 || lightOn}>
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.015, 0]} visible={base > 0} receiveShadow>
         <planeGeometry args={[30, 30]} />
         <shadowMaterial transparent opacity={0.12 * base * base} depthWrite={false} onBeforeCompile={(shader) => {
           shader.uniforms.shadowViewport = { value: shadowViewport }
@@ -621,13 +672,13 @@ function Ground({ progress, reducedMotion, lightOn }: Pick<LampSceneProps, 'prog
             .replace('#include <tonemapping_fragment>', 'vec2 shadowEdge = gl_FragCoord.xy / max(shadowViewport, vec2(1.0));\ngl_FragColor.a *= smoothstep(0.0, 0.12, shadowEdge.x) * smoothstep(0.0, 0.12, 1.0 - shadowEdge.x);\n#include <tonemapping_fragment>')
         }} />
       </mesh>
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.012, 0]}>
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.012, 0]} visible={lightOn}>
         <planeGeometry args={[8, 8]} />
         <shaderMaterial ref={illumination} transparent depthWrite={false} uniforms={lightUniforms}
           vertexShader="varying vec2 vLightUv; void main() { vLightUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }"
           fragmentShader="varying vec2 vLightUv; uniform float lampLight; void main() { vec2 distanceFromLamp = (vLightUv - 0.5) * vec2(1.0, 1.15); float pool = exp(-dot(distanceFromLamp, distanceFromLamp) * 14.0); float edge = max(abs(vLightUv.x - 0.5), abs(vLightUv.y - 0.5)); pool *= 1.0 - smoothstep(0.32, 0.49, edge); vec3 warmth = mix(vec3(1.0, 0.62, 0.25), vec3(1.0, 0.88, 0.68), pool); gl_FragColor = vec4(warmth, pool * lampLight * 0.55); }" />
       </mesh>
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.01, 0]} scale={[spread, spread, 1]}>
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.01, 0]} scale={[spread, spread, 1]} visible={contact > 0}>
         <planeGeometry args={[3.5, 3.5]} />
         <shaderMaterial transparent depthWrite={false}
           uniforms={{ contactOpacity: { value: contact } }}
@@ -680,7 +731,7 @@ function SceneFrames({ active, ready, progress, entrance, lightOn, reducedMotion
     const previous = previousFrame.current
     if (previous.progress === progress && previous.entrance === entrance && previous.ready === ready && previous.width === state.size.width && previous.height === state.size.height) return
     previousFrame.current = { progress, entrance: entrance ?? 1, ready, width: state.size.width, height: state.size.height }
-    Object.assign(state.gl.shadowMap, { needsUpdate: true })
+    Object.assign(state.gl.shadowMap, { needsUpdate: reducedMotion || progress > 0.18 })
   })
   useEffect(() => {
     const previous = renderer.shadowMap.autoUpdate
@@ -689,7 +740,7 @@ function SceneFrames({ active, ready, progress, entrance, lightOn, reducedMotion
   }, [renderer])
   useEffect(() => {
     if (!active) return
-    const settleUntil = performance.now() + (reducedMotion ? 0 : 1400)
+    const settleUntil = performance.now() + (reducedMotion || progress <= 0.18 ? 0 : 1400)
     let timer = 0
     const draw = () => {
       invalidate()
@@ -731,8 +782,8 @@ export default memo(function LampScene({ progress, entrance = 1, lightOn, reduce
   return (
     <div ref={container} data-lamp-progress={safeProgress.toFixed(4)} data-lamp-loaded={ready}
       data-render-active={active}
-      data-outline-owner="single-svg-surface" data-entrance={entrance.toFixed(4)}
-      data-graphic-fill={(1 - THREE.MathUtils.smoothstep(entrance, 0.48, 0.94)).toFixed(4)}
+      data-outline-owner="single-svg-surface" data-architecture-join={THREE.MathUtils.smootherstep(safeProgress, 0.075, 0.125).toFixed(4)} data-entrance={entrance.toFixed(4)}
+      data-graphic-fill={(1 - (!reducedMotion && safeProgress < 0.075 ? THREE.MathUtils.smootherstep(entrance, 0.68, 0.88) : THREE.MathUtils.smoothstep(entrance, 0.48, 0.94))).toFixed(4)}
       data-lamp-state={unavailable ? 'unavailable' : ready ? 'ready' : 'loading'}
       data-lamp-reveal={formation(safeProgress, reducedMotion).shade.toFixed(4)}
       data-shade-reveal={formation(safeProgress, reducedMotion).shade.toFixed(4)}
@@ -744,7 +795,7 @@ export default memo(function LampScene({ progress, entrance = 1, lightOn, reduce
       data-lamp-light={lightOn ? 'on' : 'off'}
       style={{ position: 'relative', width: '100%', height: '100%', minHeight: 200 }}>
       {webglAvailable && <PreviewBoundary key={attempt} onError={() => setUnavailable(true)}>
-        <Canvas aria-hidden="true" frameloop={active ? 'demand' : 'never'} resize={{ scroll: false }} shadows={{ type: THREE.VSMShadowMap }} dpr={[1, 1.25]}
+        <Canvas aria-hidden="true" frameloop={active ? 'demand' : 'never'} resize={{ scroll: false }} shadows={{ type: THREE.VSMShadowMap }} dpr={[1, safeProgress < 0.18 ? 2 : 1.25]}
           style={{ position: 'absolute', top: 0, left: '50%', width: '100vw', height: '100%', transform: 'translateX(-50%)' }}
           camera={{ position: [2, 3, 8], fov: 32, near: 0.1, far: 80 }}
           gl={{ antialias: true, alpha: true, powerPreference: 'default' }}

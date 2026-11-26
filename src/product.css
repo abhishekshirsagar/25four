@@ -9,7 +9,8 @@
 .hero-lockup { position: absolute; top: 66%; left: 50%; width: calc(100% - 48px); max-width: 960px; translate: -50% -50%; display: flex; flex-direction: column; align-items: center; text-align: center; }
 .story-presentation { position: absolute; inset: 0 auto 0 50%; width: min(100%, 960px); transform: translateX(-50%); z-index: 2; pointer-events: none; }
 .story-presentation .chapter-nav { pointer-events: auto; }
-.site-header { position: absolute; top: 6.1%; left: 50%; width: min(calc(100% - 48px), 960px); transform: translateX(-50%); display: flex; align-items: center; justify-content: space-between; z-index: 3; }
+.site-header { --header-inset: max(37.82px, 6.1svh); position: absolute; top: var(--header-inset); left: 50%; width: min(calc(100% - 48px), 960px); transform: translateX(-50%); display: flex; align-items: center; justify-content: space-between; z-index: 3; }
+.site-header::before { content: ''; position: absolute; inset: calc(-1 * var(--header-inset)) calc((100% - 100vw) / 2); background: #fff; z-index: -1; }
 .wordmark { display: inline-flex; gap: 12px; align-items: center; white-space: nowrap; }
 .wordmark-symbol { position: relative; display: block; width: 61px; height: 18px; }
 .wordmark-symbol img { position: absolute; top: 0; left: 0; display: block; transform: scale(.7123); transform-origin: left top; }
@@ -27,9 +28,13 @@
 .discover-link:hover svg, .chapter-nav button:hover svg { transform: translateY(5px); }
 .narrative { --story-copy-offset: 32px; --lamp-framing-gap: 32px; --lamp-switch-gap: 16px; position: absolute; top: calc(66% + var(--story-copy-offset)); left: 50%; width: calc(100% - 80px); max-width: 680px; transform: translateX(-50%); text-align: center; z-index: 3; }
 .lamp-controls { position: absolute; bottom: calc(100% + var(--lamp-switch-gap) + var(--story-copy-offset) / 2 - 8px); left: 50%; transform: translateX(-50%); display: grid; place-items: center; width: 56px; height: 44px; pointer-events: auto; }
-.lamp-switch { display: grid; place-items: center; width: 56px; height: 44px; padding: 0; }
-.lamp-switch-track { position: relative; display: block; width: 44px; height: 24px; border: 0; border-radius: 12px; background: #eef0f5; transition: background .2s; }
-.lamp-switch-thumb { position: absolute; top: 3px; left: 3px; width: 18px; height: 18px; border-radius: 50%; background: #fff; box-shadow: 0 1px 3px #02144c30; transition: transform .2s; }
+.lamp-controls[data-phase='hidden'] { visibility: hidden; }
+.lamp-controls:not([data-phase='ready']) { pointer-events: none; }
+.lamp-switch { display: grid; place-items: center; width: 56px; height: 44px; padding: 0; transform: scale(1); transform-origin: center; transition: transform var(--toggle-grow) cubic-bezier(.2, .8, .2, 1); }
+.lamp-controls[data-phase='hidden'] .lamp-switch, .lamp-controls[data-phase='shrinking'] .lamp-switch { transform: scale(0); }
+.lamp-controls[data-phase='shrinking'] .lamp-switch { transition-duration: var(--toggle-shrink); transition-timing-function: cubic-bezier(.4, 0, 1, 1); }
+.lamp-switch-track { position: relative; display: block; width: 44px; height: 24px; border: 0; border-radius: 12px; background: #eef0f5; transition: background var(--toggle-switch); }
+.lamp-switch-thumb { position: absolute; top: 3px; left: 3px; width: 18px; height: 18px; border-radius: 50%; background: #fff; box-shadow: 0 1px 3px #02144c30; transition: transform var(--toggle-switch); }
 .lamp-switch[aria-checked='true'] .lamp-switch-track { background: var(--ink); }
 .lamp-switch[aria-checked='true'] .lamp-switch-thumb { transform: translateX(20px); }
 .lamp-switch:disabled { opacity: .4; cursor: default; }
@@ -73,7 +78,7 @@
   .details-section { min-height: 100svh; }
   .experience-sticky { min-height: 0; }
   .hero-graphic { top: 18%; width: max(240vw, 110svh); transform: translateX(-50%); }
-  .site-header { top: 35px; }
+  .site-header { --header-inset: 35px; }
   .wordmark { gap: 8px; }
   .wordmark-symbol { width: 43px; height: 13px; }
   .wordmark-symbol img { transform: scale(.5021); }
