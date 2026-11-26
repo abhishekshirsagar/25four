@@ -119,6 +119,9 @@
 - [x] Read lighting-brand references and copywriting/editing guidance; document sources and keep the wording original.
 - [x] Distinguish Bagru block-printing inspiration from the lamp's 3D-printed PLA construction.
 - [x] Use Shop now as the sole right-side header action, aligned to the 960 px container edge.
+- [x] Enlarge Shop now to 16px with a 44px-high target; reserve the taller header band in facade fitting and verify model/header clearance.
+- [x] Enlarge specifications summary/rows to 20px/16px on desktop and 18px/15px on mobile; remove See Kaman lit and retain clear label/value spacing.
+- [x] Set the footer caption to LAMP / KAMAN BAGRU at 12px desktop/11px mobile, and refer to the lamp rather than Kaman in both story paragraphs; verify narrow-screen wrapping and navigation clearance.
 - [x] Give the specifications band an indigo background with white text and line artwork.
 
 ## Verification

@@ -47,8 +47,8 @@ function returningTimeFor(distance: number) {
 }
 
 const chapters = [
-  { label: 'MAKING', title: <>Old arches.<br />New ways.</>, body: 'Named after Rajasthani arches, Kaman brings four identical forms together around one centre. The lamp is 3D printed in PLA, a contemporary process for an architectural form.' },
-  { label: 'VIBE', title: <>Cool by day.<br />Warm by night.</>, body: 'Indigo and white, inspired by Bagru block printing, give Kaman its quiet daytime character. By night, warm light glows through the shade, bringing a softer rhythm to the room.' },
+  { label: 'MAKING', title: <>Old arches.<br />New ways.</>, body: 'Named after Rajasthani arches, the lamp brings four identical forms together around one centre. The lamp is 3D printed in PLA, a contemporary process for an architectural form.' },
+  { label: 'VIBE', title: <>Cool by day.<br />Warm by night.</>, body: 'Indigo and white, inspired by Bagru block printing, give the lamp its quiet daytime character. By night, warm light glows through the shade, bringing a softer rhythm to the room.' },
 ]
 
 function Wordmark({ onHome }: { onHome?: () => void }) {
@@ -398,7 +398,7 @@ function App() {
       <main>
         <section className="experience" id="home" ref={story} data-guided={modelReady} aria-label="Kaman, the Bagru edition">
           <div className="experience-sticky" data-chapter={activeChapter + 1} data-presentation={entrance.toFixed(4)} data-view={entrance >= 0.99 ? 'story' : 'opening'} data-complete={complete} data-centered={centered} data-lit={lightOn} style={{ '--entrance': entrance } as CSSProperties}>
-            <header className="site-header"><Wordmark onHome={restartPresentation} /><a className="header-link" href="#details">Shop now <ArrowUpRight size={15} /></a></header>
+            <header className="site-header"><Wordmark onHome={restartPresentation} /><a className="header-link" href="#details">Shop now <ArrowUpRight size={18} /></a></header>
             <section className="landing" aria-labelledby="product-title" inert={entrance > 0.6} style={{ visibility: entrance < 1 ? 'visible' : 'hidden' }}>
               <HeroArtwork ready={modelReady} />
               <div className="hero-type" style={{ opacity: heroOpacity }}>
@@ -429,11 +429,11 @@ function App() {
         <section className="details-section" id="details" aria-labelledby="details-title">
           <div className="details-inner">
           <div className="details-heading"><span className="eyebrow">SPECIFICATIONS / 25F-KAM-01</span><h2 id="details-title">The finer<br />print.</h2><div className="technical-drawing"><img src={`${assetBase}lamp-drawing.svg`} alt="Kaman table lamp, in outline" /></div></div>
-          <div className="details-content"><p>160 mm tall. 200 mm wide. Four arches, all the way around.</p><dl><div><dt>Edition</dt><dd>Bagru</dd></div><div><dt>Dimensions</dt><dd>160 (H) × 200 (W) mm</dd></div><div><dt>Material</dt><dd>Polylactic Acid (PLA)</dd></div><div><dt>Production</dt><dd>3D printed</dd></div><div><dt>Light colour</dt><dd>3000K / warm white</dd></div><div><dt>Power supply</dt><dd>220–240V AC, 50Hz</dd></div></dl><a className="return-link" href="#making" onClick={(event) => { event.preventDefault(); setLampEnabled(true); goToChapter(1) }}>See Kaman lit <ArrowUpRight size={20} /></a></div>
+          <div className="details-content"><p>160 mm tall. 200 mm wide. Four arches, all the way around.</p><dl><div><dt>Edition</dt><dd>Bagru</dd></div><div><dt>Dimensions</dt><dd>160 (H) × 200 (W) mm</dd></div><div><dt>Material</dt><dd>Polylactic Acid (PLA)</dd></div><div><dt>Production</dt><dd>3D printed</dd></div><div><dt>Light colour</dt><dd>3000K / warm white</dd></div><div><dt>Power supply</dt><dd>220–240V AC, 50Hz</dd></div></dl></div>
           </div>
         </section>
       </main>
-      <footer className="site-footer"><Wordmark onHome={restartPresentation} /><span>KAMAN / THE BAGRU EDITION</span><a href="#home" onClick={(event) => { event.preventDefault(); restartPresentation() }} aria-label="Back to top" title="Back to top"><ArrowUp size={21} /></a></footer>
+      <footer className="site-footer"><Wordmark onHome={restartPresentation} /><span>LAMP / KAMAN BAGRU</span><a href="#home" onClick={(event) => { event.preventDefault(); restartPresentation() }} aria-label="Back to top" title="Back to top"><ArrowUp size={21} /></a></footer>
     </>
   )
 }

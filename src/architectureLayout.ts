@@ -22,7 +22,7 @@ export function architectureLayout(width: number, height: number) {
   const textAnchor = height * (width <= 650 ? height <= 700 ? 0.56 : 0.63 : 0.66)
   const drawingTop = roofBase - roofWidth / 2 - 12
   const drawingBottom = top + bandHeight + 20
-  const clearTop = width <= 650 ? 100 : height * 0.122 + 32
+  const clearTop = width <= 650 ? 122 : height * 0.122 + 52
   const availableHeight = Math.max(1, textAnchor - 20 - clearTop)
   const fitScale = Math.min(contentWidth / referenceWidth, availableHeight / referenceHeight)
   const fitOffset = clearTop - drawingTop * fitScale + (availableHeight - (drawingBottom - drawingTop) * fitScale) / 2
