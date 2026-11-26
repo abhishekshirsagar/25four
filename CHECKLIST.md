@@ -7,7 +7,7 @@
 - [x] Fix facade proportions to the corrected 1036 x 698 reference, with a shorter pavilion and wider arcade; uniformly fit tall/short desktop and phone viewports and verify constant projected aspect ratio and header/copy clearance.
 - [x] Overlap the retiring opening graphic and arriving facade in one canvas, without a blank interval.
 - [x] Build the elevation arches from exact quarters of the existing outline; animate only translation, rotation, and uniform scale so their shapes stay unchanged.
-- [x] Match all structure, arch, and ghumat strokes at 1.5px.
+- [x] Match structure, arch, and ghumat strokes at 1.5px on desktop and 1px on mobile, preserving the opening stroke and later 2.2px vector/print guide.
 - [x] Recompose the facade around a connected jharokha gallery, larger lower arcade, central ceremonial entrance, and responsive balcony spacing using the supplied architectural references.
 - [x] Add restrained arch surrounds, pier profiles, cornice joints, and roof ribs without fills or changes to the folding curves.
 - [x] Start inside the central pavilion window with its indigo texture, then zoom out the same architectural group without a shape-to-roof morph.
@@ -17,7 +17,7 @@
 - [x] Keep one unchanged central window and outline through the zoom, restore the half-tile-staggered pattern at 10%, and remove the blue backing from the complete illustration.
 - [x] Separate the pavilion, cornice, gallery and arch crowns; add two raised-plinth lines beneath the window bases.
 - [x] Fold the center two bays into the upper vector arches and the outer bays into the lower arches.
-- [x] Smoothly strengthen the four retained arch strokes from 1.5px to 2.2px during curling, then keep that fixed-pixel stroke through the vector-to-rim morph without a thinning crossfade; verify desktop/phone widths and geometry.
+- [x] Smoothly strengthen the four retained arch strokes from their facade weight to 2.2px during curling, then keep that fixed-pixel stroke through the vector-to-rim morph without a thinning crossfade; verify desktop/phone widths and geometry.
 - [x] Trim all non-arch paths before movement, then gather horizontally and curl the connected strip over a dedicated 4-second interval with one ease per visual stage.
 - [x] Start trim fronts at arch endpoints and selected roof/cornice points, including connected junctions and disconnected ornaments; reverse travel redraws the paths.
 - [x] Retain standard vector rendering and full detail opacity while changing visible path length; keep opacity-aware anti-aliased line caps for the existing outline handoff.
@@ -78,7 +78,7 @@
 - [x] Grow the off-state switch after completed assembly, automatically light after 220ms, and finish switch-off/shrink before reverse disassembly; verify actual scale completion, manual keyboard switching, early-reversal cancellation, and reduced motion.
 - [x] Remove its track border and visible state label, optically center the switch, and retain keyboard focus, screen-reader state, and its touch target.
 - [x] Align Making/Vibe text height and center the toggle between the lamp and heading, with independent final-camera framing and no toggle-induced movement.
-- [x] Lower story copy where viewport clearance permits, preserve the lamp position, and center the switch in the enlarged gap.
+- [x] Lower mobile story copy a further 16px on tall phones and 8px on shorter layouts, preserve tight-screen safeguards and the lamp's camera framing, and center the switch in the enlarged gap; verify Making/Vibe and arrow clearance.
 - [x] Keep the guide attached to the first printed layers and fade it only once solid geometry is visible, with no empty handoff.
 - [x] Align the guide and print start to the actual shade rim, use stable visible-edge depth ordering, and shorten overlap to avoid a doubled rim.
 - [x] Remove cross-brace spans from rendered geometry and shadows without changing the base, outer shell, or source STL; retain the small attachment junctions.

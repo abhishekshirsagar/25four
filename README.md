@@ -59,7 +59,9 @@ Upper pavilion and gallery windows share the original lamp-vector arch crown;
 their straight jambs can extend without stretching the crown. Side chhatris
 connect through their pedestals into continuous facade columns.
 
-The facade's elevation strokes, arch curves, and ghumat share one 1.5px line weight.
+The facade's elevation strokes, arch curves, and ghumat share a 1.5px desktop
+line weight and a lighter 1px mobile weight. The opening window keeps its original
+stroke until the facade appears.
 During curling, the four retained arches smoothly strengthen to 2.2px for the
 joined upright vector. The same fixed-pixel LineMaterial stroke continues through
 the vector-to-rim morph, instead of crossfading to a thinner mesh outline.
@@ -171,9 +173,10 @@ indicate state; `aria-checked` retains screen-reader feedback and keyboard focus
 remains visible.
 
 Making and Vibe share the same text anchor and typography at each viewport size.
-The copy sits 32px lower on roomy desktops, 24px lower on taller phones, and 20px
-lower on compact phones with enough clearance. Tight viewports retain the original
-position so the down arrow is not clipped. Camera fitting subtracts this copy
+The copy sits 32px lower on roomy desktops, 40px lower on taller phones, and 28px
+lower on compact phones with enough clearance. Phones between 701px and 800px
+high use an 8px offset; the tightest viewports retain the original position so
+the down arrow is not clipped. Camera fitting subtracts this copy
 offset, keeping the lamp fixed; the switch moves by half the offset, with a small
 optical adjustment to center it between the painted lamp edge and heading letters.
 Framing still interpolates during assembly;
@@ -203,11 +206,11 @@ The 3D scene is lazy-loaded separately. Models, fonts, and graphic motifs are lo
 
 Public preview: https://abhishekshirsagar.github.io/25four/
 
-The published preview includes the architecture animation and browser title
-"Kaman Bagru | 25.four". The illustration is original, using the existing
-vector's unchanged arch curves; the stock reference artwork is not embedded
-or reproduced. Keep future experiments local unless publication is explicitly
-requested.
+The architecture experiment and browser title "Kaman Bagru | 25.four" are local
+only. The hosted preview remains the last published version. Do not push or
+deploy these changes unless explicitly requested. The illustration is original,
+using the existing vector's unchanged arch curves; the stock reference artwork
+is not embedded or reproduced.
 
 The repository and preview are public. Pushes to `main` build and deploy through
 [GitHub Actions](.github/workflows/pages.yml). The workflow sets

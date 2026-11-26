@@ -16,6 +16,7 @@ import { prepareTrimPaths } from './architectureTrim'
 const architectureEnd = 0.125
 const archOrder = [3, 0, 1, 2]
 const lineWidth = 1.5
+const mobileLineWidth = 1
 export const vectorLineWidth = 2.2
 
 function archCurves(svg: SVGResult) {
@@ -197,6 +198,7 @@ export default function ArchitectureArches({ svg, motif, vector, progress, entra
     }
     const { width: viewportWidth, height } = state.size
     const mobile = viewportWidth <= 650
+    const facadeLineWidth = mobile ? mobileLineWidth : lineWidth
     measure.center.set(0, 1.6, 0).project(state.camera)
     measure.right.setFromMatrixColumn(state.camera.matrixWorld, 0)
     measure.point.set(0, 1.6, 0).add(measure.right).project(state.camera)
@@ -238,6 +240,7 @@ export default function ArchitectureArches({ svg, motif, vector, progress, entra
     centralOutline.scale.copy(backing.scale)
     centralOutline.visible = buildingOpacity > 0.001
     centralOutline.material.opacity = 1
+    centralOutline.material.linewidth = THREE.MathUtils.lerp(lineWidth, facadeLineWidth, facadeReveal)
     centralOutline.material.userData.trim.trimProgress.value = 1 - buildingOpacity
     centralOutline.material.color.copy(measure.white).lerp(measure.ink, 1 - backingOpacity)
     centralOutline.material.resolution.set(viewportWidth, height)
@@ -470,6 +473,7 @@ export default function ArchitectureArches({ svg, motif, vector, progress, entra
     elevation.position.set(0, 1 - arrivalOffset / height * 2, measure.center.z).unproject(state.camera)
     elevation.quaternion.copy(state.camera.quaternion)
     elevation.material.opacity = 1
+    elevation.material.linewidth = facadeLineWidth
     elevation.material.userData.trim.trimProgress.value = 1 - facadePresence
     elevation.material.resolution.set(viewportWidth, height)
     const roofArrival = 1
@@ -478,6 +482,7 @@ export default function ArchitectureArches({ svg, motif, vector, progress, entra
     dome.quaternion.copy(state.camera.quaternion).multiply(measure.front)
     dome.scale.setScalar(roofWidth / 4 / pixelsPerUnit)
     dome.material.opacity = 1
+    dome.material.linewidth = facadeLineWidth
     dome.material.userData.trim.trimProgress.value = 1 - facadePresence
     dome.material.resolution.set(viewportWidth, height)
     panels.current.forEach((panel, part) => {
@@ -490,7 +495,7 @@ export default function ArchitectureArches({ svg, motif, vector, progress, entra
       panel.quaternion.copy(measure.startOrientation).slerp(target.quaternion, curl)
       panel.scale.setScalar(THREE.MathUtils.lerp(archScale, target.scale.x / zoom, curl))
       panel.material.opacity = opacity * facadeReveal
-      panel.material.linewidth = THREE.MathUtils.lerp(lineWidth, vectorLineWidth, curl)
+      panel.material.linewidth = THREE.MathUtils.lerp(facadeLineWidth, vectorLineWidth, curl)
       panel.material.resolution.set(viewportWidth, height)
     })
     const middleEnd = panels.current[1].geometry.getAttribute('instanceEnd')

@@ -44,7 +44,7 @@ function returningTimeFor(distance: number) {
 
 const chapters = [
   { label: 'MAKING', title: <>Old arches.<br />New ways.</>, body: 'Named after Rajasthani arches, Kaman brings four identical forms together around one centre. The lamp is 3D printed in PLA, a contemporary process for an architectural form.' },
-  { label: 'VIBE', title: <>Cool by day.<br />Warm by night.</>, body: 'Indigo and white, inspired by Bagru block printing. Warm light for the part of the evening you don\'t need to hurry.' },
+  { label: 'VIBE', title: <>Cool by day.<br />Warm by night.</>, body: 'Indigo and white, inspired by Bagru block printing, give Kaman its quiet daytime character. By night, warm light glows through the shade, bringing a softer rhythm to the room.' },
 ]
 
 function Wordmark({ onHome }: { onHome?: () => void }) {

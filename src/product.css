@@ -90,7 +90,7 @@
   .product-title strong { font-size: 76px; }
   .landing-bottom { bottom: 5%; }
   .experience { height: 380svh; }
-  .narrative { --story-copy-offset: 24px; --lamp-framing-gap: 28px; --lamp-switch-gap: 15px; top: calc(63% + var(--story-copy-offset)); width: calc(100% - 40px); }
+  .narrative { --story-copy-offset: 40px; --lamp-framing-gap: 28px; --lamp-switch-gap: 15px; top: calc(63% + var(--story-copy-offset)); width: calc(100% - 40px); }
   .chapter-label { margin-bottom: 15px; font-size: 8px; gap: 15px; }
   .chapter-copy h2 { font-size: 30px; line-height: 1.25; }
   .chapter-copy p { font-size: 15px; }
@@ -117,12 +117,16 @@
 @media (max-width: 650px) and (max-height: 700px) {
   .hero-poem { margin-bottom: 24px; font-size: 14px; line-height: 1.6; }
   .landing-bottom { bottom: 3%; }
-  .narrative { --story-copy-offset: 20px; --lamp-framing-gap: 20px; --lamp-switch-gap: 11.5px; top: calc(56% + var(--story-copy-offset)); }
+  .narrative { --story-copy-offset: 28px; --lamp-framing-gap: 20px; --lamp-switch-gap: 11.5px; top: calc(56% + var(--story-copy-offset)); }
   .chapter-copy h2 { font-size: 26px; line-height: 1.2; }
   .chapter-copy p { margin-top: 10px; font-size: 13px; line-height: 1.45; }
   .chapter-nav { margin-top: 6px; }
 }
 
-@media (min-width: 651px) and (max-height: 850px), (max-width: 650px) and (min-height: 701px) and (max-height: 800px), (max-width: 340px) and (max-height: 600px) {
+@media (max-width: 650px) and (min-height: 701px) and (max-height: 800px) {
+  .narrative { --story-copy-offset: 8px; }
+}
+
+@media (min-width: 651px) and (max-height: 850px), (max-width: 340px) and (max-height: 600px) {
   .narrative { --story-copy-offset: 0px; }
 }
