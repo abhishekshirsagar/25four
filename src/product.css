@@ -48,12 +48,12 @@
 @keyframes copy-reveal { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: translateY(0); } }
 .model-stage { position: absolute; inset: 0 auto 0 50%; width: min(100%, 960px); transform: translateX(-50%); z-index: 1; pointer-events: none; }
 .details-section { --ink: #fff; --muted: #c0cbe5; --line: #ffffff2b; border-top: 1px solid var(--line); background: #02144c; color: var(--ink); }
-.details-inner { display: grid; grid-template-columns: 1fr 1fr; gap: 9%; max-width: 960px; margin-inline: auto; padding: 110px 72px 100px; }
-.eyebrow { font-size: 11px; }
-.details-heading h2 { font-family: var(--serif); font-size: 44px; line-height: 1.3; font-weight: 300; margin-top: 28px; }
+.details-inner { display: grid; grid-template-columns: 1fr 1fr; align-items: first baseline; gap: 9%; max-width: 960px; margin-inline: auto; padding: 110px 72px 100px; }
+.details-heading h2 { font-family: var(--display); font-size: 44px; line-height: 1.3; font-weight: 200; margin-top: 0; }
+.details-heading h2 strong { font-weight: 400; }
 .technical-drawing { margin-top: 38px; width: 96px; height: 80px; display: grid; place-items: center; }
 .technical-drawing img { transform: scale(2.4); filter: brightness(0) invert(1); }
-.details-content > p { font-size: 20px; padding-top: 4px; }
+.details-content > h3 { font-family: var(--serif); font-size: 36px; line-height: 1.28; font-weight: 400; margin: 0; padding-top: 4px; }
 .details-content dl { margin: 35px 0 0; }
 .details-content dl > div { display: flex; justify-content: space-between; gap: 20px; padding: 16px 0; border-bottom: 1px solid var(--line); font-size: 16px; }
 .details-content dt { color: var(--muted); }
@@ -91,13 +91,12 @@
   .experience { height: 380svh; }
   .narrative { --story-copy-offset: 40px; --lamp-framing-gap: 28px; --lamp-switch-gap: 15px; top: calc(63% + var(--story-copy-offset)); width: calc(100% - 40px); }
   .chapter-label { margin-bottom: 15px; font-size: 8px; gap: 15px; }
-  .chapter-copy h2 { font-size: 30px; line-height: 1.25; }
+  .chapter-copy h2, .details-content > h3 { font-size: 30px; line-height: 1.25; }
   .chapter-copy p { font-size: 15px; }
   .details-inner { grid-template-columns: 1fr; padding: 62px 7% 55px; gap: 45px; }
   .details-heading { position: relative; }
-  .details-heading h2 { font-size: 34px; margin-top: 22px; }
+  .details-heading h2 { font-size: 34px; }
   .technical-drawing { position: absolute; right: 0; bottom: 0; margin: 0; }
-  .details-content > p { font-size: 18px; }
   .details-content dl { margin-top: 22px; }
   .details-content dl > div { font-size: 15px; }
   .site-footer { padding: 26px 7%; gap: 10px; }
@@ -108,7 +107,7 @@
   .product-title strong { font-size: 60px; }
   .product-title span { font-size: 28px; }
   .narrative { top: calc(63% + var(--story-copy-offset)); }
-  .chapter-copy h2 { font-size: 28px; }
+  .chapter-copy h2, .details-content > h3 { font-size: 28px; }
   .chapter-copy p { font-size: 14px; line-height: 1.5; }
   .details-heading h2 { font-size: 30px; }
 }
@@ -117,7 +116,7 @@
   .hero-poem { margin-bottom: 24px; font-size: 14px; line-height: 1.6; }
   .landing-bottom { bottom: 3%; }
   .narrative { --story-copy-offset: 28px; --lamp-framing-gap: 20px; --lamp-switch-gap: 11.5px; top: calc(56% + var(--story-copy-offset)); }
-  .chapter-copy h2 { font-size: 26px; line-height: 1.2; }
+  .chapter-copy h2, .details-content > h3 { font-size: 26px; line-height: 1.2; }
   .chapter-copy p { margin-top: 10px; font-size: 13px; line-height: 1.45; }
   .chapter-nav { margin-top: 6px; }
 }

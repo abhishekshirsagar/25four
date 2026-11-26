@@ -120,7 +120,8 @@
 - [x] Distinguish Bagru block-printing inspiration from the lamp's 3D-printed PLA construction.
 - [x] Use Shop now as the sole right-side header action, aligned to the 960 px container edge.
 - [x] Enlarge Shop now to 16px with a 44px-high target; reserve the taller header band in facade fitting and verify model/header clearance.
-- [x] Enlarge specifications summary/rows to 20px/16px on desktop and 18px/15px on mobile; remove See Kaman lit and retain clear label/value spacing.
+- [x] Match the Platypi Specifications heading to story heading sizes at every breakpoint, retaining rows at 16px desktop/15px mobile; remove the dimensions intro, product-code label, and See Kaman lit link while retaining the full table.
+- [x] Use uppercase Unbounded KAMAN at weight 200 and BAGRU at weight 400, matching the opening title, with the first Specifications baseline aligned on desktop; verify stacked mobile layout, drawing clearance, and preserved dimension values.
 - [x] Set the footer caption to LAMP / KAMAN BAGRU at 12px desktop/11px mobile, and refer to the lamp rather than Kaman in both story paragraphs; verify narrow-screen wrapping and navigation clearance.
 - [x] Give the specifications band an indigo background with white text and line artwork.
 
