@@ -432,7 +432,7 @@ function App() {
         <section className="details-section" id="details" aria-labelledby="details-title">
           <div className="details-inner">
           <div className="details-heading"><h2 id="details-title"><span>KAMAN</span><br /><strong>BAGRU</strong></h2><div className="technical-drawing"><img src={`${assetBase}lamp-drawing.svg`} alt="Kaman table lamp, in outline" /></div></div>
-          <div className="details-content"><h3>Specifications.</h3><dl><div><dt>Edition</dt><dd>Bagru</dd></div><div><dt>Dimensions</dt><dd>160 (H) × 200 (W) mm</dd></div><div><dt>Material</dt><dd>Polylactic Acid (PLA)</dd></div><div><dt>Production</dt><dd>3D printed</dd></div><div><dt>Light colour</dt><dd>3000K / warm white</dd></div><div><dt>Power supply</dt><dd>220–240V AC, 50Hz</dd></div></dl></div>
+          <div className="details-content"><h3>Specifications.</h3><dl><div><dt>Model</dt><dd>25F-KAM-01</dd></div><div><dt>Dimensions</dt><dd>160 (H) × 200 (W) mm</dd></div><div><dt>Material</dt><dd>Polylactic Acid (PLA)</dd></div><div><dt>Production</dt><dd>3D printed</dd></div><div><dt>Light colour</dt><dd>3000K / warm white</dd></div><div><dt>Power supply</dt><dd>220–240V AC, 50Hz</dd></div></dl></div>
           </div>
         </section>
       </main>

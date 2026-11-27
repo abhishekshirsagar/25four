@@ -30,6 +30,7 @@ export type LampSceneProps = {
 const modelHeight = 3.2
 const shadeStart = 1.55
 const shadeRimHeight = 1.6
+const printingStart = archCurlEnd
 const printingEnd = 0.68
 const internalColumnRadius = 0.9
 const internalColumnTop = 1.9
@@ -43,7 +44,7 @@ const assetBase = import.meta.env.BASE_URL
 
 function printProgress(progress: number, reducedMotion: boolean) {
   if (reducedMotion) return 1
-  const travel = THREE.MathUtils.clamp((progress - 0.18) / (printingEnd - 0.18), 0, 1)
+  const travel = THREE.MathUtils.clamp((progress - printingStart) / (printingEnd - printingStart), 0, 1)
   return travel * travel * (2.75 - 1.75 * travel)
 }
 
@@ -62,8 +63,8 @@ function formation(progress: number, reducedMotion: boolean) {
 }
 
 function printMotion(progress: number, reducedMotion: boolean) {
-  const movement = reducedMotion ? 0 : Math.sin(THREE.MathUtils.smoothstep(progress, 0.18, 0.72) * Math.PI)
-  const rotation = reducedMotion ? 1 : THREE.MathUtils.smootherstep(progress, 0.18, 0.9)
+  const movement = reducedMotion ? 0 : Math.sin(THREE.MathUtils.smoothstep(progress, printingStart, 0.72) * Math.PI)
+  const rotation = reducedMotion ? 1 : THREE.MathUtils.smootherstep(progress, printingStart, 0.9)
   return { rotationY: rotation * Math.PI * 1.25, zoom: 1 + movement * 0.08 }
 }
 
@@ -547,7 +548,7 @@ function PrintedLamp({ progress, entrance = 1, lightOn, reducedMotion, onReady }
       const rotation = lampStartRotation + printMotion(progress, reducedMotion).rotationY
       group.current.rotation.y = rotation
     }
-    if (mesh.current) mesh.current.visible = shadersReady && entrance >= 0.999 && (reducedMotion || progress > 0.18)
+    if (mesh.current) mesh.current.visible = shadersReady && entrance >= 0.999 && (reducedMotion || progress > printingStart)
     if (outline.current && outlineMaterial.current) {
       const tilt = reducedMotion ? Number(entrance >= 1) : THREE.MathUtils.smootherstep(progress, archCurlStart, archCurlEnd)
       const profileTilt = reducedMotion ? Number(entrance >= 1) : THREE.MathUtils.smootherstep(progress, archCurlEnd, vectorTiltEnd)
@@ -568,7 +569,7 @@ function PrintedLamp({ progress, entrance = 1, lightOn, reducedMotion, onReady }
       outline.current.quaternion.setFromEuler(graphicRotation(state.camera.quaternion, 0, pose.orientation))
       pose.turn.setFromAxisAngle(pose.upright, vectorRestRotation * THREE.MathUtils.smootherstep(entrance, 0.08, 0.9))
       outline.current.quaternion.multiply(pose.turn).slerp(pose.targetOrientation, tilt)
-      if (!reducedMotion && progress >= 0.18) {
+      if (!reducedMotion && progress >= printingStart) {
         const shade = shadePose(progress, false, state.size.width)
         outline.current.position.set(0, shadeRimHeight * shade.scale + shade.offsetY, 0)
         outline.current.scale.setScalar(shade.scale)
@@ -732,7 +733,7 @@ function SceneFrames({ active, ready, progress, entrance, lightOn, reducedMotion
     if (previous.progress === progress && previous.entrance === entrance && previous.ready === ready && previous.reducedMotion === reducedMotion && previous.width === state.size.width && previous.height === state.size.height) return
     const refit = previous.ready !== ready || previous.reducedMotion !== reducedMotion || previous.width !== state.size.width || previous.height !== state.size.height
     previousFrame.current = { progress, entrance: entrance ?? 1, ready, reducedMotion, width: state.size.width, height: state.size.height }
-    Object.assign(state.gl.shadowMap, { needsUpdate: (reducedMotion || progress > 0.18) && (refit || progress < 0.9 || previous.progress < 0.9) })
+    Object.assign(state.gl.shadowMap, { needsUpdate: (reducedMotion || progress > printingStart) && (refit || progress < 0.9 || previous.progress < 0.9) })
   })
   useEffect(() => {
     const previous = renderer.shadowMap.autoUpdate
@@ -741,7 +742,7 @@ function SceneFrames({ active, ready, progress, entrance, lightOn, reducedMotion
   }, [renderer])
   useEffect(() => {
     if (!active) return
-    const settleUntil = performance.now() + (reducedMotion || progress <= 0.18 ? 0 : 1400)
+    const settleUntil = performance.now() + (reducedMotion || progress <= printingStart ? 0 : 1400)
     let timer = 0
     const draw = () => {
       invalidate()
@@ -796,7 +797,7 @@ export default memo(function LampScene({ progress, entrance = 1, lightOn, reduce
       data-lamp-light={lightOn ? 'on' : 'off'}
       style={{ position: 'relative', width: '100%', height: '100%', minHeight: 200 }}>
       {webglAvailable && <PreviewBoundary key={attempt} onError={() => setUnavailable(true)}>
-        <Canvas aria-hidden="true" frameloop={active ? 'demand' : 'never'} resize={{ scroll: false }} shadows={{ type: THREE.VSMShadowMap }} dpr={[1, safeProgress < 0.18 ? 2 : 1.25]}
+        <Canvas aria-hidden="true" frameloop={active ? 'demand' : 'never'} resize={{ scroll: false }} shadows={{ type: THREE.VSMShadowMap }} dpr={[1, safeProgress < printingStart ? 2 : 1.25]}
           style={{ position: 'absolute', top: 0, left: '50%', width: '100vw', height: '100%', transform: 'translateX(-50%)' }}
           camera={{ position: [2, 3, 8], fov: 32, near: 0.1, far: 80 }}
           gl={{ antialias: true, alpha: true, powerPreference: 'default' }}
