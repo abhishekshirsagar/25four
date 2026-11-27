@@ -9,7 +9,7 @@ import { LineGeometry } from 'three/addons/lines/LineGeometry.js'
 import { LineMaterial } from 'three/addons/lines/LineMaterial.js'
 import { LineSegments2 } from 'three/addons/lines/LineSegments2.js'
 import { LineSegmentsGeometry } from 'three/addons/lines/LineSegmentsGeometry.js'
-import { archCurlEnd, archCurlStart, architectureDetailOpacity, architectureLayout, centralWindowLayout } from './architectureLayout'
+import { archCurlEnd, archCurlStart, architectureDetailOpacity, architectureLayout, centralWindowLayout, centralWindowPattern } from './architectureLayout'
 import { cuspedWindowPoints, palaceDomePoints, vectorArchWindowPoints } from './architectureProfiles'
 import { prepareTrimPaths } from './architectureTrim'
 
@@ -93,7 +93,10 @@ export default function ArchitectureArches({ svg, motif, vector, progress, entra
   const roof = useRef<Line2>(null)
   const windowBacking = useRef<THREE.Mesh<THREE.ShapeGeometry, THREE.ShaderMaterial>>(null)
   const windowOutline = useRef<Line2>(null)
+  const windowSides = useRef<Line2>(null)
   const windowLayout = useRef('')
+  const patternLayout = useRef('')
+  const patternTexture = useRef<THREE.DataTexture>(null)
   const layout = useRef('')
   const [curlPose] = useState(() => ({ flatOrientation: new THREE.Quaternion(), rotation: new THREE.Quaternion(), flatCenter: new THREE.Vector3(), center: new THREE.Vector3(), turn: new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), Math.PI / 4) }))
   const [measure] = useState(() => ({ center: new THREE.Vector3(), right: new THREE.Vector3(), point: new THREE.Vector3(), focus: new THREE.Vector3(), closeFocus: new THREE.Vector3(), finishFocus: new THREE.Vector3(), parentInverse: new THREE.Matrix4(), hinge: new THREE.Vector3(), joint: new THREE.Vector3(), end: new THREE.Vector3(), packed: Array.from({ length: 4 }, () => new THREE.Vector3()), ink: new THREE.Color('#02144c'), white: new THREE.Color('#ffffff'), startOrientation: new THREE.Quaternion(), front: new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1, 0, 0), Math.PI / 2) }))
@@ -121,11 +124,18 @@ export default function ArchitectureArches({ svg, motif, vector, progress, entra
     dome.renderOrder = 4
     const backing = new THREE.Mesh(new THREE.ShapeGeometry(), new THREE.ShaderMaterial({
       transparent: true, depthTest: false, depthWrite: false, side: THREE.DoubleSide,
-      uniforms: { motifTexture: { value: motif }, windowInk: { value: new THREE.Color('#02144c') }, tileSize: { value: 1 }, opacity: { value: 1 } },
+      uniforms: { motifTexture: { value: motif }, patternMask: { value: motif }, patternGrid: { value: new THREE.Vector2(1, 1) }, patternSize: { value: new THREE.Vector2(1, 1) }, patternOrigin: { value: 0 }, windowInk: { value: new THREE.Color('#02144c') }, insetInk: { value: new THREE.Color() }, shadowInk: { value: new THREE.Color() }, shadowOpacity: { value: 0 }, tileSize: { value: 1 }, opacity: { value: 1 } },
       vertexShader: 'varying vec2 windowPosition; void main() { windowPosition = vec2(position.x, -position.y); gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }',
       fragmentShader: `
         uniform sampler2D motifTexture;
+        uniform sampler2D patternMask;
+        uniform vec2 patternGrid;
+        uniform vec2 patternSize;
+        uniform float patternOrigin;
         uniform vec3 windowInk;
+        uniform vec3 insetInk;
+        uniform vec3 shadowInk;
+        uniform float shadowOpacity;
         uniform float tileSize;
         uniform float opacity;
         varying vec2 windowPosition;
@@ -134,11 +144,24 @@ export default function ArchitectureArches({ svg, motif, vector, progress, entra
           float withinTile = step(0.0, coordinates.x) * step(coordinates.x, 1.0) * step(0.0, coordinates.y) * step(coordinates.y, 1.0);
           return texture2D(motifTexture, coordinates).a * withinTile;
         }
+        float patternAt(float row) {
+          float horizontal = (windowPosition.x - patternOrigin) / tileSize - mod(row, 2.0) * 0.5;
+          float column = floor(horizontal);
+          float inside = step(0.0, column) * step(0.0, row) * (1.0 - step(patternGrid.x, column)) * (1.0 - step(patternGrid.y, row));
+          vec2 tile = vec2(fract(horizontal), windowPosition.y / tileSize - row * 0.5);
+          return motifAt(tile) * inside;
+        }
         void main() {
-          vec2 tile = fract(windowPosition / tileSize);
-          float motif = max(motifAt(tile), motifAt(fract(tile + 0.5)));
+          float row = floor(windowPosition.y / tileSize * 2.0);
+          vec2 edgeMask = texture2D(patternMask, vec2(windowPosition.x / patternSize.x + 0.5, windowPosition.y / patternSize.y)).rg;
+          float motif = max(patternAt(row - 1.0), patternAt(row)) * edgeMask.r;
           vec3 displayInk = linearToOutputTexel(vec4(windowInk, 1.0)).rgb;
-          vec3 color = sRGBTransferEOTF(vec4(mix(displayInk, vec3(1.0), motif * 0.1), 1.0)).rgb;
+          vec3 displayInset = linearToOutputTexel(vec4(insetInk, 1.0)).rgb;
+          displayInk = mix(displayInset, displayInk, edgeMask.r);
+          vec3 displayShadow = linearToOutputTexel(vec4(shadowInk, 1.0)).rgb;
+          vec3 displayColor = mix(displayInk, vec3(1.0), motif * 0.1);
+          displayColor = mix(displayColor, displayShadow, edgeMask.g * shadowOpacity);
+          vec3 color = sRGBTransferEOTF(vec4(displayColor, 1.0)).rgb;
           gl_FragColor = vec4(color, opacity);
           #include <colorspace_fragment>
         }`,
@@ -150,13 +173,20 @@ export default function ArchitectureArches({ svg, motif, vector, progress, entra
     outline.name = 'kaman-central-window-outline'
     outline.frustumCulled = false
     outline.renderOrder = 4
-    parent.add(backing, outline, elevation, dome, ...resources)
+    const sides = new Line2(new LineGeometry().setPositions([0, 0, 0, 0, 0, 0]), lineMaterial(true))
+    sides.name = 'kaman-central-window-sides'
+    sides.visible = false
+    sides.frustumCulled = false
+    sides.renderOrder = 4
+    parent.add(backing, outline, sides, elevation, dome, ...resources)
     panels.current = resources
     building.current = elevation
     roof.current = dome
     windowBacking.current = backing
     windowOutline.current = outline
+    windowSides.current = sides
     windowLayout.current = ''
+    patternLayout.current = ''
     layout.current = ''
     return () => {
       panels.current = []
@@ -164,10 +194,13 @@ export default function ArchitectureArches({ svg, motif, vector, progress, entra
       roof.current = null
       windowBacking.current = null
       windowOutline.current = null
-      parent.remove(backing, outline, elevation, dome, ...resources)
+      windowSides.current = null
+      parent.remove(backing, outline, sides, elevation, dome, ...resources)
       backing.geometry.dispose()
       backing.material.dispose()
-      for (const line of [outline, elevation, dome, ...resources]) {
+      patternTexture.current?.dispose()
+      patternTexture.current = null
+      for (const line of [outline, sides, elevation, dome, ...resources]) {
         line.geometry.dispose()
         line.material.dispose()
       }
@@ -180,12 +213,13 @@ export default function ArchitectureArches({ svg, motif, vector, progress, entra
     const dome = roof.current
     const backing = windowBacking.current
     const centralOutline = windowOutline.current
+    const centralSides = windowSides.current
     const parent = root.current
-    if (!target || !elevation || !dome || !backing || !centralOutline || !parent) return
+    if (!target || !elevation || !dome || !backing || !centralOutline || !centralSides || !parent) return
     if (!elevation.material.userData.trim || !dome.material.userData.trim || !centralOutline.material.userData.trim) return
     const travel = THREE.MathUtils.clamp((progress - 0.075) / (0.125 - 0.075), 0, 1)
     const buildingOpacity = architectureDetailOpacity(progress)
-    const facadeReveal = THREE.MathUtils.smootherstep(entrance, 0.7, 0.98)
+    const facadeReveal = THREE.MathUtils.smootherstep(entrance, 0.45, 0.98)
     const facadePresence = buildingOpacity * facadeReveal
     const gather = THREE.MathUtils.smootherstep(travel, 0.36, 0.66)
     const curl = THREE.MathUtils.smootherstep(progress, archCurlStart, archCurlEnd)
@@ -198,6 +232,7 @@ export default function ArchitectureArches({ svg, motif, vector, progress, entra
       dome.visible = false
       backing.visible = false
       centralOutline.visible = false
+      centralSides.visible = false
       panels.current.forEach((panel) => { panel.visible = false })
       return
     }
@@ -210,6 +245,23 @@ export default function ArchitectureArches({ svg, motif, vector, progress, entra
     const pixelsPerUnit = Math.abs(measure.point.x - measure.center.x) * viewportWidth / 2
     const { drawingWidth: width, ledgeOverhang, top, arcadeHeight, bandHeight, roofBase, roofWidth, fitScale, fitOffset } = architectureLayout(viewportWidth, height)
     const window = centralWindowLayout(viewportWidth, height)
+    const pattern = centralWindowPattern(window.windowWidth, window.windowHeight, window.closeZoom)
+    if (patternLayout.current !== pattern.key) {
+      patternTexture.current?.dispose()
+      const texture = new THREE.DataTexture(pattern.mask, pattern.maskWidth, pattern.maskHeight, THREE.RGFormat, THREE.UnsignedByteType)
+      texture.magFilter = THREE.LinearFilter
+      texture.minFilter = THREE.LinearFilter
+      texture.needsUpdate = true
+      patternTexture.current = texture
+      backing.material.uniforms.patternMask.value = texture
+      backing.material.uniforms.patternGrid.value.set(pattern.columns, pattern.rows)
+      backing.material.uniforms.patternSize.value.set(window.windowWidth, window.windowHeight)
+      backing.material.uniforms.patternOrigin.value = (pattern.originX - 962.003) * window.windowWidth / (1370.03 - 553.976)
+      backing.material.uniforms.insetInk.value.set(pattern.insetInk)
+      backing.material.uniforms.shadowInk.value.set(pattern.shadowInk)
+      backing.material.uniforms.shadowOpacity.value = pattern.shadowOpacity
+      patternLayout.current = pattern.key
+    }
     const zoomTravel = reducedMotion ? Number(entrance >= 1) : THREE.MathUtils.smootherstep(entrance, 0, 1)
     const zoom = THREE.MathUtils.lerp(window.closeZoom, fitScale, zoomTravel)
     measure.focus.set(0, 1 - (window.windowTop + window.windowHeight / 2) / height * 2, measure.center.z).unproject(state.camera)
@@ -224,17 +276,20 @@ export default function ArchitectureArches({ svg, motif, vector, progress, entra
     curlPose.flatOrientation.copy(state.camera.quaternion).multiply(measure.front).multiply(curlPose.turn)
     curlPose.flatCenter.set(0, 1.6, 0).applyMatrix4(measure.parentInverse)
     const inkTravel = THREE.MathUtils.smoothstep(entrance, 0.1, 0.65)
-    elevation.material.color.copy(measure.white).lerp(measure.ink, inkTravel)
+    elevation.material.color.copy(measure.ink)
     dome.material.color.copy(elevation.material.color)
-    panels.current.forEach((panel) => panel.material.color.copy(elevation.material.color))
+    panels.current.forEach((panel) => panel.material.color.copy(measure.white).lerp(measure.ink, inkTravel))
     const windowKey = `${window.windowWidth}:${window.windowHeight}`
     if (windowLayout.current !== windowKey) {
       const points = vectorArchWindowPoints(window.windowWidth, window.windowHeight)
       const shape = new THREE.Shape(points.map((point) => new THREE.Vector2(point.x, -point.y)))
       backing.geometry.dispose()
       backing.geometry = new THREE.ShapeGeometry(shape)
-      centralOutline.geometry.setPositions([...points, points[0]].flatMap((point) => [point.x, -point.y, 0]))
+      centralOutline.geometry.setPositions(points.slice(0, -2).flatMap((point) => [point.x, -point.y, 0]))
       centralOutline.material.userData.trim.trimMaximum.value = prepareTrimPaths(centralOutline.geometry, [new THREE.Vector3(points[0].x, -points[0].y, 0), new THREE.Vector3(points[points.length - 3].x, -points[points.length - 3].y, 0)])
+      centralSides.geometry.setPositions([points[0], points[points.length - 1], points[points.length - 2], points[points.length - 3]].flatMap((point) => [point.x, -point.y, 0]))
+      centralSides.material.userData.trim.trimMaximum.value = prepareTrimPaths(centralSides.geometry, [new THREE.Vector3(points[0].x, -points[0].y, 0), new THREE.Vector3(points[points.length - 3].x, -points[points.length - 3].y, 0)], 2)
+      centralSides.geometry.getAttribute('instanceTrimReverse').array.fill(1)
       windowLayout.current = windowKey
     }
     backing.position.set(0, 1 - window.windowTop / height * 2, measure.center.z).unproject(state.camera)
@@ -253,6 +308,15 @@ export default function ArchitectureArches({ svg, motif, vector, progress, entra
     centralOutline.material.userData.trim.trimProgress.value = 1 - buildingOpacity
     centralOutline.material.color.copy(measure.white).lerp(measure.ink, 1 - backingOpacity)
     centralOutline.material.resolution.set(viewportWidth, height)
+    centralSides.position.copy(backing.position)
+    centralSides.quaternion.copy(backing.quaternion)
+    centralSides.scale.copy(backing.scale)
+    centralSides.visible = facadePresence > 0.001
+    centralSides.material.opacity = 1
+    centralSides.material.linewidth = facadeLineWidth
+    centralSides.material.color.copy(measure.ink)
+    centralSides.material.userData.trim.trimProgress.value = 1 - facadePresence
+    centralSides.material.resolution.set(viewportWidth, height)
     const arrivalOffset = 0
     const galleryTier = Math.min(94, Math.max(70, arcadeHeight * 0.36)) + 8
     const bayWidth = width / 4

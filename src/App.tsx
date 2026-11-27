@@ -1,8 +1,8 @@
-import { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react'
+import { lazy, memo, Suspense, useCallback, useEffect, useRef, useState } from 'react'
 import type { CSSProperties } from 'react'
 import { ArrowDown, ArrowUp, ArrowUpRight } from 'lucide-react'
 import './product.css'
-import { archCurlEnd, archCurlStart, architectureDetailOpacity, centralWindowLayout, vectorArchPath, vectorTiltEnd } from './architectureLayout'
+import { archCurlEnd, archCurlStart, architectureDetailOpacity, centralWindowLayout, centralWindowPattern, vectorArchPath, vectorTiltEnd } from './architectureLayout'
 
 const LampScene = lazy(() => import('./LampScene'))
 const scrollCheckpoints = [0, 0.075, 0.98]
@@ -55,29 +55,31 @@ function Wordmark({ onHome }: { onHome?: () => void }) {
   return <a className="wordmark" href="#home" onClick={(event) => { if (onHome) { event.preventDefault(); onHome() } }} aria-label="25.four home"><i className="wordmark-symbol" aria-hidden="true"><img src={`${assetBase}studio-mark.svg`} alt="" /></i><span>25.<b>four</b></span></a>
 }
 
-function HeroArtwork({ ready }: { ready: boolean }) {
+const HeroArtwork = memo(function HeroArtwork({ ready }: { ready: boolean }) {
   const opening = centralWindowLayout(window.innerWidth, window.innerHeight)
-  const sourceHeight = opening.windowHeight * (1370.03 - 553.976) / opening.windowWidth
+  const pattern = centralWindowPattern(opening.windowWidth, opening.windowHeight, opening.closeZoom)
+  const sourceHeight = pattern.sourceHeight
   const path = `${vectorArchPath}L1370.03 ${sourceHeight}L553.976 ${sourceHeight}Z`
-  const tile = 48 / opening.closeZoom * (1370.03 - 553.976) / opening.windowWidth
   return (
     <div className="hero-graphic" aria-hidden="true" style={{ visibility: ready ? 'hidden' : 'visible', top: '18%', width: opening.windowWidth * opening.closeZoom, height: opening.windowHeight * opening.closeZoom, aspectRatio: 'auto', background: 'none' }}>
       <svg className="hero-motifs" viewBox={`553.976 0 ${1370.03 - 553.976} ${sourceHeight}`} style={{ mask: 'none' }}>
         <defs>
-          <pattern id="bagru-textile" width={tile} height={tile} patternUnits="userSpaceOnUse">
-            <image href={`${assetBase}kaman-motif-white.svg`} x={tile * 8.6684 / 67.5} y={tile * 8.6684 / 67.5} width={tile * 50.1632 / 67.5} height={tile * 50.1632 / 67.5} />
-            <image href={`${assetBase}kaman-motif-white.svg`} x={tile * 42.4184 / 67.5} y={tile * 42.4184 / 67.5} width={tile * 50.1632 / 67.5} height={tile * 50.1632 / 67.5} />
-            <image href={`${assetBase}kaman-motif-white.svg`} x={tile * -25.0816 / 67.5} y={tile * 42.4184 / 67.5} width={tile * 50.1632 / 67.5} height={tile * 50.1632 / 67.5} />
-            <image href={`${assetBase}kaman-motif-white.svg`} x={tile * 42.4184 / 67.5} y={tile * -25.0816 / 67.5} width={tile * 50.1632 / 67.5} height={tile * 50.1632 / 67.5} />
-            <image href={`${assetBase}kaman-motif-white.svg`} x={tile * -25.0816 / 67.5} y={tile * -25.0816 / 67.5} width={tile * 50.1632 / 67.5} height={tile * 50.1632 / 67.5} />
-          </pattern>
+          <clipPath id="window-pattern-clip"><path d={path} /></clipPath>
+          <mask id="window-pattern-mask" maskUnits="userSpaceOnUse" x={553.976} y={0} width={1370.03 - 553.976} height={sourceHeight} style={{ maskType: 'alpha' }}>
+            <image href={pattern.maskUrl} x={553.976} y={0} width={1370.03 - 553.976} height={sourceHeight} preserveAspectRatio="none" />
+          </mask>
+          <mask id="window-shadow-mask" maskUnits="userSpaceOnUse" x={553.976} y={0} width={1370.03 - 553.976} height={sourceHeight} style={{ maskType: 'alpha' }}>
+            <image href={pattern.shadowUrl} x={553.976} y={0} width={1370.03 - 553.976} height={sourceHeight} preserveAspectRatio="none" />
+          </mask>
         </defs>
-        <path d={path} fill="#02144c" />
-        <path d={path} fill="url(#bagru-textile)" opacity="0.1" />
+        <path d={path} fill={pattern.insetInk} />
+        <path d={path} fill="#02144c" mask="url(#window-pattern-mask)" />
+        <g opacity="0.1" clipPath="url(#window-pattern-clip)" mask="url(#window-pattern-mask)">{pattern.motifs.map((motif) => <image key={`${motif.x}:${motif.y}`} href={`${assetBase}kaman-motif-white.svg`} x={motif.x} y={motif.y} width={motif.size} height={motif.size} />)}</g>
+        <path d={path} fill={pattern.shadowInk} opacity={pattern.shadowOpacity} mask="url(#window-shadow-mask)" />
       </svg>
     </div>
   )
-}
+})
 
 function App() {
   const [reducedMotion, setReducedMotion] = useState(() => matchMedia('(prefers-reduced-motion: reduce)').matches)
