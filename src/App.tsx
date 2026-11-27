@@ -56,6 +56,7 @@ function Wordmark({ onHome }: { onHome?: () => void }) {
 }
 
 const HeroArtwork = memo(function HeroArtwork({ ready }: { ready: boolean }) {
+  if (ready) return null
   const opening = centralWindowLayout(window.innerWidth, window.innerHeight)
   const pattern = centralWindowPattern(opening.windowWidth, opening.windowHeight, opening.closeZoom)
   const sourceHeight = pattern.sourceHeight
